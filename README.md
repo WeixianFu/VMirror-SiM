@@ -1,6 +1,6 @@
 # VMirror-SiM
 
-**Vehicle Mirror Simulation** — 拖车后视镜视野仿真系统
+**VMirror-SiM: Vehicle Mirror Simulation** — 拖车后视镜视野仿真系统
 
 基于 Blender Cycles 光线追踪的参数化后视镜视野分析工具，用于评估车辆拖曳房车时不同后视镜配置下的驾驶员可视区域。
 
