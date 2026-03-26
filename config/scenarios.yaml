@@ -1,0 +1,163 @@
+# ==============================================================================
+# 仿真场景配置
+# 定义 4 种测试场景的参数
+# 坐标系：与 vehicles.yaml 一致（X=横向, Y=纵向, Z=垂直）
+# 单位：米 (m)
+# ==============================================================================
+
+scenarios:
+  highway:
+    display_name: "高速公路行驶（3车道）"
+    description: "3车道高速公路，车辆+房车位于中央车道，左右后方各有参考车辆"
+    road_preset: "highway_3lane"
+    vehicle_lane: 2   # 中央车道（从中央分隔带起算，1-indexed）
+
+    reference_vehicles:
+      - id: "left_rear_close"
+        lane: 1                          # 快车道（左侧）
+        y_offset: -15                    # 车后方 15m
+        dimensions: [1.85, 4.5, 1.5]    # 宽 × 长 × 高
+        color: [0.2, 0.3, 0.8, 1.0]     # 蓝色
+        label: "左后近车 (15m)"
+
+      - id: "left_rear_far"
+        lane: 1
+        y_offset: -35
+        dimensions: [1.85, 4.5, 1.5]
+        color: [0.4, 0.5, 0.9, 1.0]     # 浅蓝
+        label: "左后远车 (35m)"
+
+      - id: "right_rear_close"
+        lane: 3                          # 慢车道（右侧）
+        y_offset: -12
+        dimensions: [1.85, 4.5, 1.5]
+        color: [0.2, 0.7, 0.3, 1.0]     # 绿色
+        label: "右后近车 (12m)"
+
+      - id: "right_rear_far"
+        lane: 3
+        y_offset: -40
+        dimensions: [1.85, 4.5, 1.5]
+        color: [0.4, 0.8, 0.5, 1.0]     # 浅绿
+        label: "右后远车 (40m)"
+
+    guardrail:
+      height: 0.8
+      width: 0.12
+      color: [0.6, 0.6, 0.6, 1.0]       # 灰色金属
+
+  parking:
+    display_name: "停车场静态测试"
+    description: "开阔停车场地面，雪糕桶和立杆组成参考物网格"
+    road_preset: null                     # 无道路，使用停车场地面
+
+    surface:
+      dimensions: [40, 60]               # 宽 × 长
+      center: [0, -20]                   # 中心在车后方 20m
+      color: [0.30, 0.30, 0.30, 1.0]    # 深灰沥青
+
+    reference_grid:
+      x_range: [-12, 12]
+      x_spacing: 2.0
+      y_range: [-4, -40]
+      y_spacing: 4.0
+
+      cone:                              # 雪糕桶（奇数行）
+        height: 0.5
+        base_radius: 0.15
+        top_radius: 0.02
+        color: [1.0, 0.5, 0.0, 1.0]     # 橙色
+
+      pole:                              # 立杆（偶数行）
+        height: 1.0
+        radius: 0.05
+        color: [0.9, 0.1, 0.1, 1.0]     # 红色
+
+    landmarks:
+      - id: "landmark_left_10m"
+        position: [-6, -10]
+        size: 1.0
+        color: [0.1, 0.1, 0.9, 1.0]     # 蓝色
+
+      - id: "landmark_right_10m"
+        position: [6, -10]
+        size: 1.0
+        color: [0.9, 0.9, 0.1, 1.0]     # 黄色
+
+      - id: "landmark_center_20m"
+        position: [0, -20]
+        size: 1.0
+        color: [0.1, 0.8, 0.1, 1.0]     # 绿色
+
+      - id: "landmark_left_30m"
+        position: [-8, -30]
+        size: 1.0
+        color: [0.6, 0.1, 0.8, 1.0]     # 紫色
+
+      - id: "landmark_right_30m"
+        position: [8, -30]
+        size: 1.0
+        color: [0.9, 0.1, 0.1, 1.0]     # 红色
+
+  regulatory:
+    display_name: "UN ECE R46 法规验证"
+    description: "基于 UN ECE R46 Class III 法规要求，标记可视区域边界和测试柱"
+    road_preset: "highway"
+
+    # R46 区域颜色（半透明，alpha=0.3）
+    zone_colors:
+      passenger_near: [0.2, 0.8, 0.2, 0.3]   # 半透明绿
+      passenger_far:  [0.2, 0.2, 0.8, 0.3]   # 半透明蓝
+      driver_near:    [0.8, 0.8, 0.2, 0.3]   # 半透明黄
+      driver_far:     [0.8, 0.2, 0.2, 0.3]   # 半透明红
+
+    # 最外侧平面标线
+    boundary_line:
+      width: 0.10
+      color: [1.0, 0.5, 0.0, 1.0]            # 橙色
+
+    # 测试柱参数
+    test_pole:
+      height: 1.0
+      radius: 0.05
+      color: [0.95, 0.95, 0.95, 1.0]         # 白色
+
+    # R46 Class III 法规参数
+    r46_class_iii:
+      near_field_width: 1.0        # 近场可视宽度要求 (m)
+      near_field_start: 4.0        # 从驾驶员眼点后方起算 (m)
+      near_field_end: 20.0         # 到眼点后方 20m
+      far_field_width: 4.0         # 远场可视宽度要求 (m)
+      far_field_start: 20.0        # 从眼点后方 20m 起算
+      far_field_end: 80.0          # 延伸到地平线（取 80m 作为实际范围）
+
+  lane_change:
+    display_name: "变道检测"
+    description: "后方接近车辆在不同距离下的可见性测试，生成检测距离图表"
+    road_preset: "highway_3lane"
+    vehicle_lane: 2
+
+    approaching_vehicle:
+      dimensions: [1.85, 4.5, 1.5]
+      color: [0.85, 0.15, 0.15, 1.0]    # 鲜红色，高辨识度
+
+      # 测试距离（每个距离单独渲染一帧）
+      distances: [10, 20, 30, 50, 70]
+
+      # 测试车道
+      lanes:
+        left: 1       # 快车道
+        right: 3      # 慢车道
+
+
+# ==============================================================================
+# 道路预设（扩展 test_scene.yaml 中的预设）
+# ==============================================================================
+road_presets:
+  highway_3lane:
+    lane_width: 3.75
+    num_lanes: 3
+    shoulder_width: 3.0
+    median_width: 1.5
+    road_length: 110
+    description: "3车道高速公路，适合多车道场景"

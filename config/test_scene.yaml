@@ -102,3 +102,9 @@ presets:
     shoulder_width: 1.0
     median_width: 0
     description: "乡村双向两车道公路，欧洲常见拖车路线"
+  highway_3lane:
+    lane_width: 3.75
+    num_lanes: 3
+    shoulder_width: 3.0
+    median_width: 1.5
+    description: "3车道高速公路，适合多车道场景"
