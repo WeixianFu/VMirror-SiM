@@ -1,0 +1,30 @@
+# ===== 3D Models (local only, too large for GitHub) =====
+assets/models/
+
+# ===== Blender temp files =====
+*.blend1
+*.blend2
+
+# ===== Original zip archives =====
+*.zip
+
+# ===== Render outputs (optional, uncomment to track) =====
+# renders/
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== IDE =====
+.vscode/
+.idea/
