@@ -1,0 +1,104 @@
+# ==============================================================================
+# 测试场景参数配置
+# 坐标系：与 vehicles.yaml 一致
+# 单位：米 (m)
+# 来源：docs/TestScene.md
+# ==============================================================================
+
+# 场景空间范围
+scene_bounds:
+  x_range: [-15, 15]     # 横向：左右各 15m
+  y_range: [-80, 30]     # 纵向：车前方 30m，车后方 80m
+  z_range: [0, 5]        # 垂直：地面到 5m
+
+# 道路参数
+road:
+  lane_width: 3.75               # 单车道宽度 (高速公路标准)
+  num_lanes: 2                   # 单向车道数（双向共 4 车道）
+  median_width: 1.5              # 中央分隔带宽度
+  shoulder_width: 3.0            # 路肩宽度
+  road_length: 110               # 道路总长度
+
+  # 标线参数
+  markings:
+    line_width: 0.15
+    dash_length: 6.0
+    dash_gap: 9.0
+    edge_line_width: 0.20
+
+  # 路面颜色 (RGBA)
+  colors:
+    road_surface: [0.15, 0.15, 0.15, 1.0]      # 深灰沥青
+    shoulder:     [0.25, 0.25, 0.22, 1.0]       # 浅灰路肩
+    line_white:   [0.95, 0.95, 0.95, 1.0]       # 白色标线
+    line_yellow:  [0.95, 0.85, 0.15, 1.0]       # 黄色标线（中央线）
+
+# 地面参考标记
+markers:
+  ground_grid:
+    x_range_m: [-15, 15]
+    x_spacing_m: 2.5
+    y_range_m: [-5, -40]         # 车后方
+    y_spacing_m: 5
+    radius_m: 0.3
+    colors:
+      odd_row:  [0.9, 0.15, 0.15, 1.0]   # 红色
+      even_row: [0.15, 0.15, 0.9, 1.0]   # 蓝色
+
+  reference_poles:
+    radius_m: 0.05
+    colors:
+      red:    [0.9, 0.1, 0.1, 1.0]
+      blue:   [0.1, 0.1, 0.9, 1.0]
+      yellow: [0.95, 0.85, 0.1, 1.0]
+      green:  [0.1, 0.8, 0.2, 1.0]
+      white:  [0.9, 0.9, 0.9, 1.0]
+
+  distance_rulers:
+    start_m: 5
+    end_m: 40
+    interval_m: 5
+
+# 光照
+lighting:
+  sun:
+    energy: 5.0
+    elevation_deg: 45
+    azimuth_deg: -30
+  sky_color: [0.52, 0.67, 0.85, 1.0]
+  sky_strength: 1.0
+
+# 渲染设置
+render:
+  engine: "CYCLES"
+  device: "GPU"
+  resolution: [1920, 1080]
+  samples: 128
+
+# Z-fighting 防护层级
+z_levels:
+  ground: 0.000
+  road_surface: 0.001
+  lane_markings: 0.002
+  grid_markers: 0.003
+
+# 场景预设
+presets:
+  highway:
+    lane_width: 3.75
+    num_lanes: 2
+    shoulder_width: 3.0
+    median_width: 1.5
+    description: "标准高速公路，适合长途拖车场景"
+  urban:
+    lane_width: 3.25
+    num_lanes: 2
+    shoulder_width: 1.5
+    median_width: 0.5
+    description: "城市道路，较窄车道和路肩"
+  country_road:
+    lane_width: 3.50
+    num_lanes: 1
+    shoulder_width: 1.0
+    median_width: 0
+    description: "乡村双向两车道公路，欧洲常见拖车路线"

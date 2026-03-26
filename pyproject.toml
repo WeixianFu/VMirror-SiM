@@ -5,21 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mirror_sim"            # 包名，改成你的项目名
 version = "0.1.0"                # 初始版本号
-description = "开发环境"
+description = "拖车后视镜视野仿真系统 — Vehicle Mirror Simulation for towing scenarios"
 readme = "README.md"             # 可选：项目自述文件
 authors = [
   { name = "Weixian Fu", email = "weixian.fu@outlook.com" }
 ]
 license = { file = "LICENSE" }      
-keywords = ["bpy", "mirror", "vision"]
+keywords = ["bpy", "blender", "mirror", "towing", "caravan", "vision", "simulation"]
 classifiers = [
   "Programming Language :: Python :: 3.11",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent"
 ]
 dependencies = [
-  # 运行时依赖列表，例如：
-  # "numpy>=1.24",
+  "numpy>=1.24",
+  "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]

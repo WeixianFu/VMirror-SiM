@@ -1,4 +1,8 @@
-# Prompt #3：AI 3D 车辆模型生成 Prompt 集
+# 车辆模型：AI 3D 生成 Prompt 与校准规范
+
+> 本文档包含 4 种车型的 AI 3D 模型生成 Prompt 及生成后校准要点。
+>
+> **参数配置**：`config/vehicles.yaml`
 
 ---
 
@@ -56,15 +60,17 @@ global illumination. Defined geometric facets. Light-blue studio
 background. Subtle soft ground shadow. 3/4 front isometric view angle.
 ```
 
-### 生成后校准要点
-- 整体长宽高比例：约 4.6m × 1.85m × 1.7m（缩放到 Blender 实际尺寸）
+### 生成后校准要点（参考 Honda CR-V 2024）
+- 整体尺寸：**4.70m × 1.87m × 1.69m**（官方 4704 × 1866 × 1685mm）
+- 轴距：2.70m（官方 2700mm）
+- 前悬：约 0.90m
 - 后视镜安装位置：A 柱底部/前车门前缘，离地约 1.25m
 - 窗框下沿高度：约 1.25m
-- 前轴位置：车头后约 0.9m
+- 前轴位置：车头后约 0.90m
 
 ---
 
-## 车型 B：皮卡（Ranger / Hilux 级别）
+## 车型 B：皮卡（Hilux 级别）
 
 ### Prompt
 
@@ -100,11 +106,13 @@ global illumination. Defined geometric facets. Light-blue studio
 background. Subtle soft ground shadow. 3/4 front isometric view angle.
 ```
 
-### 生成后校准要点
-- 整体长宽高比例：约 5.3m × 1.85m × 1.8m
+### 生成后校准要点（参考 Toyota Hilux Double Cab 2024）
+- 整体尺寸：**5.33m × 1.86m × 1.82m**（官方 5325 × 1855 × 1815mm）
+- 轴距：3.085m（官方 3085mm）
+- 前悬：0.99m（官方 990mm）
 - 后视镜安装位置：A 柱底部，离地约 1.35m（高于 SUV）
 - 窗框下沿高度：约 1.35m
-- 货箱长度：约 1.5m
+- 货箱长度：约 1.52m
 - 后拖钩位置：后保险杠中央下方
 
 ---
@@ -147,8 +155,10 @@ global illumination. Defined geometric facets. Light-blue studio
 background. Subtle soft ground shadow. 3/4 front isometric view angle.
 ```
 
-### 生成后校准要点
-- 整体长宽高比例：约 4.8m × 1.83m × 1.5m（低于 SUV）
+### 生成后校准要点（参考 VW Passat Variant 2024 B9）
+- 整体尺寸：**4.92m × 1.85m × 1.50m**（官方 4917 × 1849 × 1497mm）
+- 轴距：2.84m（官方 2841mm）
+- 前悬：约 0.90m
 - 后视镜安装位置：A 柱底部，离地约 1.05m
 - 窗框下沿高度：约 1.05m
 - 车身较长较低，拖房车时后视野遮挡更显著
@@ -193,11 +203,14 @@ global illumination. Defined geometric facets. Light-blue studio
 background. Subtle soft ground shadow. 3/4 front isometric view angle.
 ```
 
-### 生成后校准要点
-- 整体长宽高比例：约 4.0m × 1.75m × 1.47m
+### 生成后校准要点（参考 VW Polo 2024）
+- 整体尺寸：**4.07m × 1.75m × 1.45m**（官方 4074 × 1751 × 1446mm）
+- 轴距：2.56m（官方 2564mm）
+- 前悬：约 0.76m
 - 后视镜安装位置：A 柱底部，离地约 1.00m
 - 窗框下沿高度：约 1.00m
-- 车身最小，拖房车时盲区问题最为突出
+- 车身最小（四种车型中最窄 1.75m），拖房车时盲区问题最为突出
+- 含后视镜全宽约 1.96m（官方 1964mm）
 
 ---
 
@@ -227,6 +240,3 @@ background. Subtle soft ground shadow. 3/4 front isometric view angle.
    - 设置前轴原点为 `(0,0,0)`
    - 统一命名规范（`Vehicle_SUV`、`Vehicle_Pickup` 等）
 
----
-
-**备注：** （待执行后补充生成效果评价）

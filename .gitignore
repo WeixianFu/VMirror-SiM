@@ -1,5 +1,8 @@
 # ===== VMirror-SiM 项目特定 =====
 
+# 一次性迁移脚本（已完成使命）
+fix_and_push.sh
+
 # 大型 3D 模型文件（仅本地保留，不上传 GitHub）
 assets/models/
 
@@ -10,8 +13,8 @@ assets/models/
 # 原始 zip 包
 *.zip
 
-# 渲染输出（可选，取消注释以排除）
-# renders/
+# 渲染输出（Blender Cycles 渲染图片，按需本地创建）
+renders/
 
 # ===== Python =====
 

@@ -1,0 +1,87 @@
+# ==============================================================================
+# 房车（拖挂式旅居车）参数配置
+# 坐标系：与 vehicles.yaml 一致
+# 单位：米 (m) / 千克 (kg)
+# 来源：docs/CaravanModels.md
+# ==============================================================================
+
+caravans:
+  S:
+    display_name: "紧凑型 (Eriba Touring / Knaus Sport 级别)"
+    color_accent: "mint_green"
+    dimensions:
+      body_length: 3.8          # 不含牵引杆
+      total_length: 5.0         # 含牵引杆
+      body_width: 2.08
+      body_width_with_trim: 2.15
+      body_height: 2.50
+    towing:
+      drawbar_length: 1.2       # A-frame 牵引杆长度
+      hitch_height: 0.42        # 标准 50mm 球头挂接高度
+    axle:
+      type: single
+      position_from_front_wall: 2.3
+    weight_laden_kg: [750, 1000]
+
+  M:
+    display_name: "中型 (Hobby De Luxe / Fendt Bianco 级别)"
+    color_accent: "sand_beige"
+    dimensions:
+      body_length: 5.3
+      total_length: 6.5
+      body_width: 2.30
+      body_width_with_trim: 2.38
+      body_height: 2.65
+    towing:
+      drawbar_length: 1.2
+      hitch_height: 0.42
+    axle:
+      type: single
+      position_from_front_wall: 3.5
+    weight_laden_kg: [1200, 1500]
+
+  L:
+    display_name: "大型 (Hobby Prestige / Fendt Tendenza 级别)"
+    color_accent: "slate_blue"
+    dimensions:
+      body_length: 6.8
+      total_length: 8.0
+      body_width: 2.50
+      body_width_with_trim: 2.55
+      body_height: 2.80
+    towing:
+      drawbar_length: 1.35      # 大型房车牵引杆略长
+      hitch_height: 0.42
+    axle:
+      type: twin
+      front_axle_from_front_wall: 4.5
+      rear_axle_from_front_wall: 5.5
+      axle_spacing: 1.0
+    weight_laden_kg: [1800, 2500]
+
+# 各车型-房车组合的房车前壁 Y 坐标
+# 公式：-(overall_length - front_overhang) - rear_bumper_to_hitch(0.3) - drawbar_length
+# 负值 = 在驾驶员后方，绝对值越大 = 离驾驶员越远
+caravan_positions:
+  pickup:     # Hilux: rear_end=-4.34, hitch=-4.64
+    S: -5.84  # drawbar 1.2m
+    M: -5.84
+    L: -5.99  # drawbar 1.35m
+  suv:        # CR-V: rear_end=-3.81, hitch=-4.11
+    S: -5.31
+    M: -5.31
+    L: -5.46
+  wagon:      # Passat: rear_end=-4.02, hitch=-4.32
+    S: -5.52
+    M: -5.52
+    L: -5.67
+  hatchback:  # Polo: rear_end=-3.31, hitch=-3.61
+    S: -4.81
+    M: -4.81
+    L: -4.96
+
+# 宽度遮挡分析
+width_analysis:
+  # 单侧超出量 = (房车宽度 - 牵引车宽度) / 2
+  # > 0.25m 时标准后视镜几乎无法覆盖，需拖车加长镜
+  critical_overhang_threshold: 0.25

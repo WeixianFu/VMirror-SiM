@@ -12,20 +12,20 @@
 
 - **车型**：皮卡 (Hilux) · SUV (CR-V) · 旅行车 (Passat) · A级小车 (TBD)
 - **后视镜类型**：平面镜 · 吸附式凸面镜 · 外套式外壳镜 · 电动升降高端镜
-- **房车尺寸**：紧凑型 S · 中型 M · 大型 L · 大型 L2
+- **房车尺寸**：紧凑型 S · 中型 M · 大型 L
 - **眼点位置**：P5 / P50 / P95（基于 SAE J941）
 
 ## 目录结构
 
 ```
 VMirror-SiM/
-├── docs/                      # 项目文档与 AI 提示词
-├── src/                       # Python 脚本 & Jupyter Notebooks
+├── docs/                      # 项目文档（设计规范、Prompt 记录等）
+├── src/                       # Python 模块（Blender 脚本、工具函数）
+├── notebooks/                 # Jupyter Notebook（仿真实验、可视化）
 ├── assets/
 │   ├── reference-images/      # AI 生成 3D 模型时的参考图
 │   └── models/                # 3D 模型文件 (.gitignore)
-├── config/                    # 参数配置 (JSON/YAML)
-├── renders/                   # 渲染输出
+├── config/                    # 参数配置 (YAML)
 └── results/                   # 分析结果 (CSV)
 ```
 

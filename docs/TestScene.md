@@ -1,20 +1,12 @@
-# Prompt #4：测试场景搭建（外部环境）
+# 测试场景搭建规范（外部环境）
 
-> **日期：** 2026-03-26
+> 本文档定义用于后视镜视野仿真的标准化测试场景，包含道路系统、车道标线、参考标记物等。场景不包含车辆和后视镜（分别由 `VehicleModels.md` 和 `MirrorDesign.md` 负责）。
 >
-> **想法：** 后视镜视野仿真需要一个标准化的外部测试场景，包含道路、车道线、参考标记物等，用于验证镜面反射效果和量化可视区域。场景应符合真实道路比例，并为后续的俯视可视区域图、光路示意图、盲区分析提供空间参考基准。
->
-> **前置条件：** 本 prompt 独立于车辆和后视镜 prompt，仅负责外部环境。车辆、房车、后视镜分别由 `VehicleModels.md` 和 `MirrorDesign.md` 负责。
+> **参数配置**：`config/test_scene.yaml`
 
 ---
 
-## Prompt：
-
-你是一个 Blender Python 专家，同时熟悉道路工程标准和汽车测试场地设计。请在 Blender 中搭建一个用于**拖车后视镜视野仿真**的标准化测试场景。场景只包含外部环境元素（道路、标线、参考物等），不包含车辆和后视镜本身。
-
----
-
-### 零、场景设计原则
+## 一、场景设计原则
 
 1. **真实比例**：所有尺寸以米为单位，符合真实道路几何参数
 2. **参数化**：道路宽度、车道数、标线间距等均为可调参数
@@ -24,9 +16,9 @@
 
 ---
 
-### 一、坐标系与空间范围
+### 二、坐标系与空间范围
 
-#### 1.1 坐标系约定（与 MirrorDesign.md 一致）
+#### 2.1 坐标系约定（与 MirrorDesign.md 一致）
 
 ```python
 # ========== 坐标系映射常量 ==========
@@ -38,7 +30,7 @@ UP      = "+Z"    # 向上
 DOWN    = "-Z"    # 向下
 ```
 
-#### 1.2 场景空间范围
+#### 2.2 场景空间范围
 
 ```python
 SCENE_BOUNDS = {
@@ -52,9 +44,9 @@ SCENE_BOUNDS = {
 
 ---
 
-### 二、道路系统
+### 三、道路系统
 
-#### 2.1 道路参数定义
+#### 3.1 道路参数定义
 
 ```python
 ROAD_PARAMS = {
@@ -79,7 +71,7 @@ ROAD_PARAMS = {
 }
 ```
 
-#### 2.2 道路几何创建
+#### 3.2 道路几何创建
 
 ```python
 import bpy
@@ -171,7 +163,7 @@ def create_road_plane(name, width, length, center_x=0, center_y=0,
     return obj
 ```
 
-#### 2.3 车道标线创建
+#### 3.3 车道标线创建
 
 ```python
 def create_lane_markings(params, collection):
@@ -292,7 +284,7 @@ def create_dashed_line(name, x_pos, y_start, y_end, width,
         idx += 1
 ```
 
-#### 2.4 车辆初始位置定义
+#### 3.4 车辆初始位置定义
 
 ```python
 # 车辆放置在右侧（+X侧）第一车道中央
@@ -322,9 +314,9 @@ def get_road_offset_for_vehicle():
 
 ---
 
-### 三、地面与环境
+### 四、地面与环境
 
-#### 3.1 周围地面
+#### 4.1 周围地面
 
 ```python
 def create_ground_plane():
@@ -348,7 +340,7 @@ def create_ground_plane():
 
 > **Z-fighting 防护：** 道路面 Z=0.001，标线 Z=0.002，地面 Z=0。确保渲染时不会出现闪烁。
 
-#### 3.2 天空与光照
+#### 4.2 天空与光照
 
 ```python
 def setup_scene_lighting():
@@ -393,16 +385,16 @@ def setup_scene_lighting():
 
 ---
 
-### 四、可视区域参考标记系统
+### 五、可视区域参考标记系统
 
-#### 4.1 设计目的
+#### 5.1 设计目的
 
 在车辆后方/侧后方布置一系列标记物，用于：
 1. **渲染验证**：通过后视镜观察哪些标记物可见/不可见
 2. **量化分析**：标记物的可见性直接映射为可视区域边界
 3. **法规校验**：与 UN R46 / FMVSS 111 要求的可视区域对比
 
-#### 4.2 地面网格标记（Ground Grid Markers）
+#### 5.2 地面网格标记（Ground Grid Markers）
 
 ```python
 def create_ground_grid_markers(collection=None):
@@ -450,7 +442,7 @@ def create_ground_grid_markers(collection=None):
     return grid_collection
 ```
 
-#### 4.3 垂直参考柱（Vertical Reference Poles）
+#### 5.3 垂直参考柱（Vertical Reference Poles）
 
 ```python
 def create_reference_poles(collection=None):
@@ -526,7 +518,7 @@ def create_reference_poles(collection=None):
     return pole_collection
 ```
 
-#### 4.4 距离刻度标尺（Distance Scale Rulers）
+#### 5.4 距离刻度标尺（Distance Scale Rulers）
 
 ```python
 def create_distance_rulers(collection=None):
@@ -571,7 +563,7 @@ def create_distance_rulers(collection=None):
 
 ---
 
-### 五、辅助工具函数
+### 六、辅助工具函数
 
 ```python
 def create_collection(name):
@@ -592,7 +584,7 @@ def move_to_collection(obj, collection):
 
 ---
 
-### 六、场景层级结构
+### 七、场景层级结构
 
 ```
 Scene Collection
@@ -621,7 +613,7 @@ Scene Collection
 
 ---
 
-### 七、主控函数：一键创建完整测试场景
+### 八、主控函数：一键创建完整测试场景
 
 ```python
 import bpy
@@ -688,9 +680,9 @@ build_test_scene()
 
 ---
 
-### 八、验证检查清单
+### 九、验证检查清单
 
-#### 8.1 空间验证
+#### 9.1 空间验证
 
 ```python
 def validate_test_scene():
@@ -737,7 +729,7 @@ def validate_test_scene():
 validate_test_scene()
 ```
 
-#### 8.2 视觉快速验证
+#### 9.2 视觉快速验证
 
 执行完 `build_test_scene()` 后，建议：
 
@@ -747,7 +739,7 @@ validate_test_scene()
 
 ---
 
-### 九、预设场景变体
+### 十、预设场景变体
 
 ```python
 SCENE_PRESETS = {
@@ -783,7 +775,7 @@ SCENE_PRESETS = {
 
 ---
 
-### 十、与其他模块的接口约定
+### 十一、与其他模块的接口约定
 
 | 接口 | 本模块（TestScene）提供 | 其他模块使用 |
 |------|----------------------|------------|
@@ -795,4 +787,3 @@ SCENE_PRESETS = {
 
 ---
 
-**备注：** （待执行后补充）
