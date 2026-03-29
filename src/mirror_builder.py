@@ -111,6 +111,17 @@ def _get_offset_category(mirror_type_key: str) -> str:
     return "standard"
 
 
+def get_blend_filename(mirror_type_config: dict, side: str = "left") -> str | None:
+    """
+    获取镜面类型对应的 .blend 文件名。
+
+    优先使用侧别子配置中的 blend_file，否则使用顶层 blend_file。
+    """
+    if side in mirror_type_config and "blend_file" in mirror_type_config[side]:
+        return mirror_type_config[side]["blend_file"]
+    return mirror_type_config.get("blend_file")
+
+
 def create_mirror_glass(
     width: float = 0.17,
     height: float = 0.11,
@@ -148,7 +159,6 @@ def create_mirror_glass(
         )
         obj = bpy.context.active_object
         obj.name = name
-        characteristic_size = diameter
     else:
         # 圆角矩形镜面
         bpy.ops.mesh.primitive_plane_add(size=1)
@@ -164,49 +174,71 @@ def create_mirror_glass(
         bevel.affect = "VERTICES"
         bpy.ops.object.modifier_apply(modifier="Bevel")
 
-        characteristic_size = max(width, height)
-
-    # 凸面镜处理：细分 + 球面化
+    # 凸面镜处理：细分 + 精确球冠公式
     if curvature_radius > 0:
+        import bmesh
+
         # 细分以获得足够的顶点（最少 16×16）
         subdiv = obj.modifiers.new("Subdiv", "SUBSURF")
         subdiv.levels = 4  # 2^4 = 16 subdivisions per edge
+        subdiv.render_levels = 4
         bpy.ops.object.modifier_apply(modifier="Subdiv")
 
-        # 球面化
-        cast = obj.modifiers.new("Spherize", "CAST")
-        cast.cast_type = "SPHERE"
-        cast.factor = characteristic_size / (2 * curvature_radius)
-        cast.size = characteristic_size
-        cast.use_radius_as_size = True
-        bpy.ops.object.modifier_apply(modifier="Spherize")
+        # 精确球冠公式: z = R - sqrt(R² - x² - y²)
+        # 保证曲率半径误差 < 1%（替代 Cast 修改器的近似映射）
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        r_sq_limit = curvature_radius ** 2
+        for v in bm.verts:
+            r_sq = v.co.x ** 2 + v.co.y ** 2
+            if r_sq < r_sq_limit:
+                v.co.z = curvature_radius - math.sqrt(r_sq_limit - r_sq)
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
 
     return obj
 
 
-def _parse_mirror_type_params(mirror_type_config: dict) -> dict:
+def _parse_mirror_type_params(mirror_type_config: dict, side: str = "left") -> dict:
     """
     从 mirrors.yaml 的镜面类型配置中提取 create_mirror_glass() 所需的参数。
 
+    支持左右差异化配置：
+    - 若配置中包含 left/right 子键，优先使用对应侧的参数
+    - 否则使用顶层共享参数
+    - 侧别参数覆盖共享参数
+
     处理范围值（取中值）和圆形/矩形形状差异。
     """
+    # 合并配置：共享参数 + 侧别参数（侧别覆盖共享）
+    merged = {}
+    for k, v in mirror_type_config.items():
+        if k not in ("left", "right", "display_name", "shape", "blend_file"):
+            merged[k] = v
+    # 侧别参数覆盖
+    if side in mirror_type_config:
+        for k, v in mirror_type_config[side].items():
+            if k != "blend_file":
+                merged[k] = v
+
     params = {}
 
     # 判断是否为圆形镜面
-    if "diameter_mm" in mirror_type_config:
+    if "diameter_mm" in merged:
         params["is_circular"] = True
-        d = mirror_type_config["diameter_mm"]
+        d = merged["diameter_mm"]
         params["diameter"] = (
             (d[0] + d[1]) / 2 / 1000 if isinstance(d, list) else d / 1000
         )
     else:
         params["is_circular"] = False
-        params["width"] = mirror_type_config["width_mm"] / 1000
-        params["height"] = mirror_type_config["height_mm"] / 1000
-        params["corner_radius"] = mirror_type_config.get("corner_radius_mm", 25) / 1000
+        params["width"] = merged["width_mm"] / 1000
+        params["height"] = merged["height_mm"] / 1000
+        params["corner_radius"] = merged.get("corner_radius_mm", 25) / 1000
 
     # 曲率半径
-    cr = mirror_type_config.get("curvature_radius_mm")
+    cr = merged.get("curvature_radius_mm")
     if cr is None:
         params["curvature_radius"] = 0  # 平面镜
     elif isinstance(cr, list):
@@ -379,8 +411,8 @@ def create_mirror_assembly(
     assembly.name = f"Mirror_Assembly_{side_label}"
     assembly.empty_display_size = 0.05
 
-    # --- Step 3: 创建镜面 ---
-    glass_params = _parse_mirror_type_params(mirror_type)
+    # --- Step 3: 创建镜面（参数按侧别差异化）---
+    glass_params = _parse_mirror_type_params(mirror_type, side)
     glass = create_mirror_glass(
         name=f"Mirror_Glass_{side_label}",
         **glass_params,
@@ -443,6 +475,72 @@ def setup_cycles_for_mirrors(mirrors_config: dict | None = None):
         f"Cycles 设置完成: glossy_bounces={scene.cycles.glossy_bounces}, "
         f"max_bounces={scene.cycles.max_bounces}"
     )
+
+
+# ========== 驾驶员视野验证 ==========
+
+
+def set_vehicle_ray_visibility(
+    objects: list["bpy.types.Object"],
+    camera_visible: bool = False,
+    glossy_visible: bool = True,
+):
+    """
+    设置车辆对象的 Cycles 光线可见性。
+
+    用于驾驶员视野验证：关闭 Camera 可见性使摄像机可穿透车体，
+    保留 Glossy 可见性使后视镜反射中仍能看到车辆。
+
+    参数:
+        objects: 车辆 Blender 对象列表（可包含 Empty 等非 MESH 对象，会自动跳过）
+        camera_visible: 是否对摄像机直射光线可见（False=穿透）
+        glossy_visible: 是否对镜面反射光线可见（True=镜中可见）
+    """
+    count = 0
+    for obj in objects:
+        if obj.type == "MESH":
+            obj.visible_camera = camera_visible
+            obj.visible_glossy = glossy_visible
+            obj.visible_diffuse = True
+            obj.visible_shadow = True
+            obj.visible_transmission = True
+            count += 1
+    print(f"Ray Visibility 已设置: {count} 个 MESH 对象 "
+          f"(camera={camera_visible}, glossy={glossy_visible})")
+
+
+def create_driver_camera(
+    vehicle_key: str = "suv",
+    vehicles_config: dict | None = None,
+    name: str = "DriverCamera",
+) -> "bpy.types.Object":
+    """
+    在驾驶员眼点位置创建摄像机，用于视野验证。
+
+    参数:
+        vehicle_key: 车型键名
+        vehicles_config: 可选，预加载的车辆配置
+        name: 摄像机名称
+
+    返回:
+        Blender 摄像机对象
+    """
+    if vehicles_config is None:
+        vehicles_config = load_vehicles_config()
+
+    vehicle = vehicles_config["vehicles"][vehicle_key]
+    eye = vehicle["eye_point"]["reference"]
+
+    cam_data = bpy.data.cameras.new(name)
+    cam_obj = bpy.data.objects.new(name, cam_data)
+    bpy.context.scene.collection.objects.link(cam_obj)
+
+    cam_obj.location = (eye[0], eye[1], eye[2])
+    # 摄像机默认朝 -Z，旋转 90° 使其朝 +Y（车前方）
+    cam_obj.rotation_euler = (math.radians(90), 0, 0)
+
+    print(f"驾驶员摄像机已创建: {name} @ ({eye[0]:.3f}, {eye[1]:.3f}, {eye[2]:.3f})")
+    return cam_obj
 
 
 # ========== 便捷函数 ==========

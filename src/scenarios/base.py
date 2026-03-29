@@ -184,6 +184,30 @@ class BaseScenario:
         # 周围草地
         create_ground_plane(size=200, center_y=-20)
 
+    # ========== 驾驶员视野 ==========
+
+    def setup_driver_view(self, vehicle_objects: list):
+        """
+        设置驾驶员视野验证：创建驾驶员摄像机 + 设置车辆穿透。
+
+        在导入车辆模型后调用。车辆对摄像机不可见（可穿透），
+        但对镜面反射仍然可见。
+
+        参数:
+            vehicle_objects: 已导入的车辆 Blender 对象列表
+
+        返回:
+            驾驶员摄像机对象
+        """
+        from mirror_builder import create_driver_camera, set_vehicle_ray_visibility
+
+        set_vehicle_ray_visibility(vehicle_objects)
+        cam = create_driver_camera(
+            vehicle_key=self.vehicle_key,
+            vehicles_config=self.vehicles_cfg,
+        )
+        return cam
+
     # ========== 子类接口 ==========
 
     def create_scenario_objects(self):

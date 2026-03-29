@@ -1,62 +1,85 @@
 # ==============================================================================
-# 后视镜参数配置（简化模型）
+# 后视镜参数配置（简化模型）- 欧洲标准 ECE R46
 # 单位：毫米 (mm)，除非特别标注
-# 来源：docs/MirrorDesign.md
+# 来源：docs/MirrorDesign.md, UN ECE R46 Rev.6
 #
 # 简化模型说明：
 #   本配置仅定义镜面几何参数和安装偏移，不含壳体/镜臂模型。
 #   Blender 中的后视镜结构为：
 #     Mirror_Assembly (Empty, 安装锚点) → Mirror_Glass (Mesh, 反射镜面)
 #   镜面全面积参与反射，无边框遮挡。
+#
+# 左右差异化说明：
+#   驾驶员侧（左）距眼近，使用更大曲率半径（更平），视野足够。
+#   副驾驶侧（右）距眼远，使用更小曲率半径（更凸）+略大尺寸，
+#   以补偿距离并提供足够视野覆盖。
+#   广角副镜和盲点镜左右相同（曲率已经很大，无需区分）。
 # ==============================================================================
 
 # 镜面尺寸参考表
 mirror_types:
-  standard_flat:
-    display_name: "标准平面镜"
-    width_mm: 170
-    height_mm: 110
-    corner_radius_mm: 25
-    curvature_radius_mm: null    # 平面镜，无曲率
-    shape: "rounded_rectangle"
-
   standard_convex:
     display_name: "标准凸面镜"
-    width_mm: 170
-    height_mm: 110
     corner_radius_mm: 25
-    curvature_radius_mm: [1000, 1400]   # 范围
     shape: "rounded_rectangle_convex"
+    left:
+      width_mm: 170
+      height_mm: 110
+      curvature_radius_mm: 1400      # 驾驶员侧：更平
+      blend_file: "standard_convex_L.blend"
+    right:
+      width_mm: 180
+      height_mm: 120
+      curvature_radius_mm: 1100      # 副驾驶侧：更凸、略大
+      blend_file: "standard_convex_R.blend"
 
   clip_on_blind_spot:
     display_name: "吸附式小凸面镜"
-    diameter_mm: [60, 75]        # 圆形
-    curvature_radius_mm: [400, 600]
+    diameter_mm: 67.5
+    curvature_radius_mm: 500
     shape: "circular"
+    blend_file: "clip_on_blind_spot.blend"
+    # 左右相同，无需区分
 
   towing_main:
     display_name: "拖车加长镜（主镜）"
-    width_mm: 200
-    height_mm: 140
     corner_radius_mm: 20
-    curvature_radius_mm: [1000, 1200]
     shape: "rounded_rectangle_convex"
+    left:
+      width_mm: 200
+      height_mm: 140
+      curvature_radius_mm: 1200      # 驾驶员侧：更平
+      blend_file: "towing_main_L.blend"
+    right:
+      width_mm: 210
+      height_mm: 150
+      curvature_radius_mm: 1000      # 副驾驶侧：更凸、略大
+      blend_file: "towing_main_R.blend"
 
   towing_wide_angle:
     display_name: "拖车加长镜（广角副镜）"
     width_mm: 200
     height_mm: 80
     corner_radius_mm: 15
-    curvature_radius_mm: [400, 600]
+    curvature_radius_mm: 500
     shape: "wide_rounded_rectangle"
+    blend_file: "towing_wide_angle.blend"
+    # 左右相同，广角副镜无需区分
 
   electric_main:
     display_name: "电动升降镜（主镜）"
-    width_mm: 190
-    height_mm: 130
     corner_radius_mm: 20
-    curvature_radius_mm: 1200
     shape: "rounded_rectangle_convex"
+    left:
+      width_mm: 190
+      height_mm: 130
+      curvature_radius_mm: 1400      # 驾驶员侧：更平
+      blend_file: "electric_main_L.blend"
+    right:
+      width_mm: 200
+      height_mm: 140
+      curvature_radius_mm: 1100      # 副驾驶侧：更凸、略大
+      blend_file: "electric_main_R.blend"
 
   electric_sub:
     display_name: "电动升降镜（副镜）"
@@ -65,7 +88,9 @@ mirror_types:
     corner_radius_mm: 15
     curvature_radius_mm: 500
     shape: "wide_rounded_rectangle"
-    adjustable: true              # 可上下移动
+    adjustable: true                   # 可上下移动
+    blend_file: "electric_sub.blend"
+    # 左右相同，广角副镜无需区分
 
 # 镜臂偏移量（安装基准点 → 镜面中心，单位：米）
 mirror_offsets:
@@ -88,10 +113,13 @@ cycles_settings:
   glossy_bounces: 8
   max_bounces: 12
 
-# 法规参考
+# 法规参考（ECE R46 为主要适用标准）
 regulations:
+  ece_r46:
+    class_iii_min_area_cm2: 69           # Class III 最小镜面面积
+    min_curvature_radius_mm: 150         # 非球面最小曲率半径
+    curvature_uniformity: 0.15           # 偏差 ≤ 0.15R (R<3000时)
+    min_reflectance: 0.40                # 最低反射率 40%
+    note: "ECE R46 Rev.6 — Class III 乘用车外后视镜"
   fmvss_111:
-    convex_curvature_radius_mm: [889, 1651]
-    min_reflective_area_cm2: 126
-  un_r46:
-    note: "欧洲法规对拖车镜有额外视野覆盖要求"
+    note: "北美标准（本项目不适用）：驾驶员侧必须平面，副驾驶侧凸面 R=889-1651mm"
