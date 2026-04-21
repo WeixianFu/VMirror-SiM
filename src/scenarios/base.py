@@ -188,25 +188,19 @@ class BaseScenario:
 
     def setup_driver_view(self, vehicle_objects: list):
         """
-        设置驾驶员视野验证：创建驾驶员摄像机 + 设置车辆穿透。
+        设置车辆穿透，用于驾驶员视野验证。
 
-        在导入车辆模型后调用。车辆对摄像机不可见（可穿透），
-        但对镜面反射仍然可见。
+        对车辆对象关闭 Camera 可见性（摄像机穿透车体），
+        保留 Glossy 可见性（后视镜反射中仍能看到车辆）。
+
+        摄像机需手动放置在实测眼点位置（如场景中的 EyePoint_* 对象）。
 
         参数:
             vehicle_objects: 已导入的车辆 Blender 对象列表
-
-        返回:
-            驾驶员摄像机对象
         """
-        from mirror_builder import create_driver_camera, set_vehicle_ray_visibility
+        from mirror_builder import set_vehicle_ray_visibility
 
         set_vehicle_ray_visibility(vehicle_objects)
-        cam = create_driver_camera(
-            vehicle_key=self.vehicle_key,
-            vehicles_config=self.vehicles_cfg,
-        )
-        return cam
 
     # ========== 子类接口 ==========
 

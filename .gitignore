@@ -15,6 +15,7 @@ assets/models/
 
 # 渲染输出（Blender Cycles 渲染图片，按需本地创建）
 renders/
+output/
 
 # ===== Python =====
 

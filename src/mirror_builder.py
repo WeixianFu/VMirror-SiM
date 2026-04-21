@@ -197,6 +197,20 @@ def create_mirror_glass(
         bm.free()
         obj.data.update()
 
+        # 确保法向量朝 +Z（凸面外侧）——球冠变形后法向量可能反向
+        # 检查中心顶点的法向量方向，若朝 -Z 则翻转所有面
+        center_v = min(obj.data.vertices, key=lambda v: v.co.x**2 + v.co.y**2)
+        if center_v.normal.z < 0:
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.select_all(action="SELECT")
+            bpy.ops.mesh.flip_normals()
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        # 启用平滑着色以获得正确的凸面反射
+        for f in obj.data.polygons:
+            f.use_smooth = True
+
     return obj
 
 
@@ -278,10 +292,10 @@ def calculate_mirror_orientation(
     # 镜面法向量 = 两个方向的角平分线
     mirror_normal = (to_eye + to_target).normalized()
 
-    # Blender 平面默认法向量是 +Z（朝上）
-    # 计算从 +Z 旋转到 mirror_normal 所需的旋转
-    default_normal = mathutils.Vector((0, 0, 1))
-    rotation = default_normal.rotation_difference(mirror_normal)
+    # 构造旋转矩阵：将本地 +Z 对齐到 mirror_normal，+Y 尽量朝上
+    # 使用 to_track_quat 明确指定 up 方向，避免 roll 自由度不稳定
+    # 镜面本地坐标：+Z = 法向量, +Y = 高度方向(尽量朝世界 +Z)
+    rotation = mirror_normal.to_track_quat('Z', 'Y')
     euler = rotation.to_euler("XYZ")
 
     return euler
@@ -446,14 +460,7 @@ def create_mirror_assembly(
     )
     glass.data.materials.append(mat)
 
-    # --- Step 7: 确保法向量朝外 ---
-    bpy.context.view_layer.objects.active = glass
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.mesh.normals_make_consistent(inside=False)
-    bpy.ops.object.mode_set(mode="OBJECT")
-
-    # --- Step 8: 验证 ---
+    # --- Step 7: 验证 ---
     print(f"\n=== 验证 Mirror_{side_label} ({vehicle_key}, {mirror_type_key}) ===")
     validate_mirror_position(glass, vehicle, side)
     validate_mirror_orientation(glass, eye_point)
@@ -507,40 +514,6 @@ def set_vehicle_ray_visibility(
             count += 1
     print(f"Ray Visibility 已设置: {count} 个 MESH 对象 "
           f"(camera={camera_visible}, glossy={glossy_visible})")
-
-
-def create_driver_camera(
-    vehicle_key: str = "suv",
-    vehicles_config: dict | None = None,
-    name: str = "DriverCamera",
-) -> "bpy.types.Object":
-    """
-    在驾驶员眼点位置创建摄像机，用于视野验证。
-
-    参数:
-        vehicle_key: 车型键名
-        vehicles_config: 可选，预加载的车辆配置
-        name: 摄像机名称
-
-    返回:
-        Blender 摄像机对象
-    """
-    if vehicles_config is None:
-        vehicles_config = load_vehicles_config()
-
-    vehicle = vehicles_config["vehicles"][vehicle_key]
-    eye = vehicle["eye_point"]["reference"]
-
-    cam_data = bpy.data.cameras.new(name)
-    cam_obj = bpy.data.objects.new(name, cam_data)
-    bpy.context.scene.collection.objects.link(cam_obj)
-
-    cam_obj.location = (eye[0], eye[1], eye[2])
-    # 摄像机默认朝 -Z，旋转 90° 使其朝 +Y（车前方）
-    cam_obj.rotation_euler = (math.radians(90), 0, 0)
-
-    print(f"驾驶员摄像机已创建: {name} @ ({eye[0]:.3f}, {eye[1]:.3f}, {eye[2]:.3f})")
-    return cam_obj
 
 
 # ========== 便捷函数 ==========
