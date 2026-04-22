@@ -1,0 +1,87 @@
+# Lane-change scene — 3-lane divided highway with approaching vehicles
+# All linear values in meters.
+
+model: scene_lane_change
+source_blend: assets/blender-scenes/scene_lane_change.blend
+
+# Coordinate convention: origin = global = vehicle front-axle ground projection.
+#   +X right, +Y forward, +Z up; ground plane at Z = 0.
+# Import with identity transform.
+coordinate_system: global_origin_equals_vehicle_origin
+
+# Scene active Y range: 150 m rearward + 50 m forward.
+bounds:
+  road:    { x: [-18.375,  5.625], y: [-150.0,  50.0] }
+  with_shoulders: { x: [-21.375,  8.625], y: [-150.0,  50.0] }
+  ground:  { x: [-100.0, 100.0], y: [-225.0,  75.0] }   # background (extra margin)
+
+lanes:
+  ego_center_x:       0.0
+  adjacent_left_x:   -3.75
+  adjacent_right_x:  +3.75
+  lane_width:         3.75          # uniform — center-to-center of lane markings
+  median_inner_edge_x: -5.625       # right edge of median (CenterLine_Right center)
+  right_road_edge_x:  +5.625
+  right_shoulder_edge_x: +8.625
+
+# All lanes in both directions are uniform 3.75 m wide (center-to-center of
+# adjacent lane markings). Drivable-strip widths (between inner edges of
+# adjacent markings) are 3.60 m each.
+lane_widths:
+  all_lanes_center_to_center: 3.75
+  drivable_all_lanes:         3.60   # inner-edge to inner-edge (= 3.75 − 0.15)
+  median_gap_between_centerline_centers:     1.50
+  median_gap_between_centerline_inner_edges: 1.35
+  shoulder_width:             3.00
+
+# Lane-marking X centers (uniform 3.75 m spacing). All span Y ∈ [-150, +50].
+marking_x_centers:
+  edge_left:     -18.375
+  lane_L2:       -14.625
+  lane_L1:       -10.875
+  center_left:    -7.125   # left stripe of double-yellow (oncoming side)
+  center_right:   -5.625   # right stripe of double-yellow (ego side)
+  lane_R1:        -1.875   # between ego-direction inner (L3) and middle (L2)
+  lane_R2:        +1.875   # between ego middle (L2) and outer (L1)
+  edge_right:     +5.625
+
+# Lane-marking dimensions (painted stripes).
+lane_markings:
+  center_line_width:     0.150    # each stripe of the double-yellow
+  edge_line_width:       0.200    # solid white road edge
+  lane_line_width:       0.150    # dashed lane divider
+  dashed_segment_length: 6.000    # 6 m dash + 9 m gap (15 m period)
+  dashed_gap_length:     9.000
+  segments_per_lane_line: 14      # covers the full Y ∈ [-150, +50] range
+  marking_z:             0.002    # painted just above ground plane
+
+# Approaching vehicles — sedan silhouette meshes matching Euro NCAP Global
+# Vehicle Target bounding box (4.50 × 1.80 × 1.45 m). The mesh is a simple
+# extruded profile (hood 1.0 m + cabin 2.5 m + trunk 1.0 m) so that A/C
+# pillars, roof, and hood/trunk tops are visible in mirror reflections.
+approaching_vehicles:
+  shape: sedan_silhouette                 # procedurally rebuilt from side profile
+  size: { length: 4.50, width: 1.80, height: 1.45 }   # bbox along Y × X × Z
+  profile:
+    hood_length:   1.00
+    cabin_length:  2.50
+    trunk_length:  1.00
+    beltline_z:    0.75                   # body-to-cabin transition height
+    roof_z:        1.45
+  base_z: 0.0
+  distances_m: [10, 20, 30, 50, 70]
+  left_template:  { x: -3.75 }   # at y = -distance (center of left adjacent lane)
+  right_template: { x: +3.75 }
+  entries:
+    - { name: Approaching_left_10m,   x: -3.75, y: -10.0 }
+    - { name: Approaching_left_20m,   x: -3.75, y: -20.0 }
+    - { name: Approaching_left_30m,   x: -3.75, y: -30.0 }
+    - { name: Approaching_left_50m,   x: -3.75, y: -50.0 }
+    - { name: Approaching_left_70m,   x: -3.75, y: -70.0 }
+    - { name: Approaching_right_10m,  x: +3.75, y: -10.0 }
+    - { name: Approaching_right_20m,  x: +3.75, y: -20.0 }
+    - { name: Approaching_right_30m,  x: +3.75, y: -30.0 }
+    - { name: Approaching_right_50m,  x: +3.75, y: -50.0 }
+    - { name: Approaching_right_70m,  x: +3.75, y: -70.0 }
+
+sun_light: { location: [0.0, 0.0, 10.0], rotation_deg: [45.0, 0.0, -30.0] }

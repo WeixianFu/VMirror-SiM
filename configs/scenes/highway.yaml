@@ -1,0 +1,59 @@
+# Highway scene — 3-lane divided highway (right-hand traffic)
+# All linear values in meters, angles in degrees.
+
+model: scene_highway
+source_blend: assets/blender-scenes/scene_highway.blend
+
+# Coordinate convention (project-wide):
+#   origin = global origin = vehicle front-axle ground projection
+#   +X = right,  +Y = forward,  +Z = up
+# Ground plane at Z = 0 (all props baked to sit on / just above ground).
+# Import with identity transform: the scene's own origin IS the vehicle origin.
+coordinate_system: global_origin_equals_vehicle_origin
+
+# Spatial extent (world frame).
+bounds:
+  road:    { x: [-18.38, 5.62],   y: [-80.0, 30.0] }   # drivable + median area
+  with_shoulders: { x: [-21.38, 8.62], y: [-80.0, 30.0] }
+  ground:  { x: [-100.0, 100.0],  y: [-100.0, 100.0] } # background plane
+
+# Lane layout in ego direction (right of median).
+# Ego (0,0,0) sits on the CENTER lane; adjacent lanes at ±3.75.
+lanes:
+  ego_center_x:       0.0
+  adjacent_left_x:   -3.75   # passing side (toward median)
+  adjacent_right_x:  +3.75   # curb side
+  lane_width:         3.75   # nominal (center-to-center of lane markings)
+  median_inner_edge_x: -5.4   # right side of median barrier (our direction)
+  right_road_edge_x:  +5.62
+  right_shoulder_edge_x: +8.62
+
+# Precise lane widths (pattern mirrored on both directions of travel).
+lane_widths:
+  drivable_m:                         # inner-edge to inner-edge of adjacent markings
+    inner_lane_next_to_median: 3.700
+    center_lane_ego:           3.600
+    outer_lane_curb_side:      3.575
+  center_to_center_m:
+    inner_lane_next_to_median: 3.850
+    center_lane_ego:           3.750
+    outer_lane_curb_side:      3.750
+  median_gap_between_centerlines: 1.150
+  shoulder_width:                 3.000
+
+lane_markings:
+  center_line_width:  0.150
+  edge_line_width:    0.200
+  lane_line_width:    0.150
+  dashed_segment_length: 6.000
+  marking_z:          0.002
+
+# Reference vehicles (static), positioned in the two adjacent lanes.
+reference_vehicles:
+  left_rear_close:   { x: -3.75, y: -15.0 }
+  left_rear_far:     { x: -3.75, y: -35.0 }
+  right_rear_close:  { x: +3.75, y: -12.0 }
+  right_rear_far:    { x: +3.75, y: -40.0 }
+
+# Ambient lighting.
+sun_light: { location: [0.0, 0.0, 10.0], rotation_deg: [45.0, 0.0, -30.0] }

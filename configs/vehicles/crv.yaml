@@ -1,0 +1,61 @@
+# Honda CR-V Similar — low-poly vehicle geometry config
+# Backup of parameters already baked into assets/blender-vehicle/crv.blend.
+# All linear values in meters, angles in degrees.
+
+model: crv
+source_blend: assets/blender-vehicle/crv.blend
+
+# World-coordinate convention (project-wide):
+#   origin = front-axle center, projected to ground
+#   +X = right (passenger side), -X = left (driver side)
+#   +Y = forward (vehicle nose),  -Y = rearward
+#   +Z = up
+coordinate_system: front_axle_ground_projection
+
+# Origin of the model in world coordinates.
+# Because the transform is baked into mesh vertices, the Blender object sits
+# at world (0,0,0) with identity rotation; this block documents that fact.
+origin:
+  position:  [0.0, 0.0, 0.0]   # x, y, z
+  rotation:  [0.0, 0.0, 0.0]   # rx, ry, rz (Euler, degrees)
+
+# Axis-aligned bounding box dimensions (world frame).
+dimensions:
+  length: 4.397   # along Y
+  width:  1.866   # along X
+  height: 1.939   # along Z
+
+# Vertex extents in the model's local (= world) frame.
+# Useful for sanity-checking placement: origin lies on the centerline,
+# on the ground plane, 0.837 m behind the front bumper.
+bounds:
+  x: [-0.933,  0.933]
+  y: [-3.560,  0.837]
+  z: [ 0.000,  1.939]
+
+# Forward direction the model is facing in its stored pose.
+facing: +Y
+
+# Trailer hitch ball — ground projection (world frame, meters).
+# Used as the alignment target for a caravan's coupler ground projection,
+# guaranteeing both vehicle and caravan rest on Z = 0 (no float / no sink).
+#
+# Derivation:
+#   rear_bumper_y      = -3.560   (actual model extent, from mesh bounds)
+#   bumper_to_hitch    =  0.300   (standard receiver + ball overhang)
+#   hitch_ball_y       = -3.860
+#   hitch_ball_height  =  0.420   (ISO 50 mm ball coupler, reference only)
+hitch_ground_projection: [0.0, -3.860, 0.0]
+
+# Mirror mount points (world frame, meters).
+# Left picked from the model in Blender; right mirrored across X=0.
+mirror_mount:
+  left:  [-0.80318, -0.6788, 1.3188]
+  right: [ 0.80318, -0.6788, 1.3188]
+
+# Driver eye point (P50 reference, LHD).
+# X = -0.35 → 350 mm left of centerline; Y = -0.10 → 100 mm behind front axle.
+eye_point: [-0.35, -1.15, 1.20]
+# Note: Y shifted from doc's placeholder -0.10 (which sits above the front
+# axle / engine bay) to -1.15, a realistic SUV driver H-point location
+# ~1.15 m behind the front axle.

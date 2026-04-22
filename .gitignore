@@ -5,6 +5,8 @@ fix_and_push.sh
 
 # 大型 3D 模型文件（仅本地保留，不上传 GitHub）
 assets/models/
+assets/blender-vehicle/
+assets/blender-caravan/
 
 # Blender 临时文件
 *.blend1

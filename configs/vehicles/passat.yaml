@@ -1,0 +1,56 @@
+# VW Passat Similar — low-poly vehicle geometry config
+# Backup of parameters already baked into assets/blender-vehicle/passat.blend.
+# All linear values in meters, angles in degrees.
+
+model: passat
+source_blend: assets/blender-vehicle/passat.blend
+
+# World-coordinate convention (project-wide):
+#   origin = front-axle center, projected to ground
+#   +X = right (passenger side), -X = left (driver side)
+#   +Y = forward (vehicle nose),  -Y = rearward
+#   +Z = up
+coordinate_system: front_axle_ground_projection
+
+# Origin of the model in world coordinates.
+# Because the transform is baked into mesh vertices, the Blender object sits
+# at world (0,0,0) with identity rotation; this block documents that fact.
+origin:
+  position:  [0.0, 0.0, 0.0]   # x, y, z
+  rotation:  [0.0, 0.0, 0.0]   # rx, ry, rz (Euler, degrees)
+
+# Axis-aligned bounding box dimensions (world frame).
+dimensions:
+  length: 4.724   # along Y
+  width:  1.849   # along X
+  height: 1.472   # along Z
+
+# Vertex extents in the model's local (= world) frame.
+# Origin lies on the centerline, on the ground plane,
+# 0.865 m behind the front bumper.
+bounds:
+  x: [-0.924,  0.924]
+  y: [-3.860,  0.865]
+  z: [ 0.000,  1.472]
+
+# Forward direction the model is facing in its stored pose.
+facing: +Y
+
+# Trailer hitch ball — ground projection (world frame, meters).
+# Derivation:
+#   rear_bumper_y      = -3.860   (actual model extent, from mesh bounds)
+#   bumper_to_hitch    =  0.200   (sedan — shorter overhang than SUV/pickup)
+#   hitch_ball_y       = -4.060
+#   hitch_ball_height  =  0.420   (ISO 50 mm ball coupler, reference only)
+hitch_ground_projection: [0.0, -4.060, 0.0]
+
+# Mirror mount points (world frame, meters).
+# Left picked from the model in Blender; right mirrored across X=0.
+mirror_mount:
+  left:  [-0.7393, -0.68814, 0.97671]
+  right: [ 0.7393, -0.68814, 0.97671]
+
+# Driver eye point (P50 reference, LHD, Wagon).
+# Y = -1.25, a realistic wagon driver H-point location between SUV (-1.15)
+# and pickup (-1.40).
+eye_point: [-0.35, -1.25, 1.05]

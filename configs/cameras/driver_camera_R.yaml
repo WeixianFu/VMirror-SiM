@@ -1,0 +1,57 @@
+# Driver-eye camera — RIGHT mirror view (passenger side, LHD)
+# Telephoto 200 mm — fills the frame with the side mirror so the reflection
+# can be analyzed directly. All linear values in meters, angles in degrees.
+
+model: driver_camera_R
+source_blend: assets/blender-camera/driver_camera.blend    # shared asset (L/R use same camera)
+source_object: DriverCam
+
+placement:
+  strategy: parent_to_vehicle_at_eye
+  parent_to: vehicle.ego
+  local_position_source: vehicle.eye_point
+  local_rotation_euler_deg: [0.0, 0.0, 0.0]   # superseded by Track-To below
+
+track_to:
+  type:        TRACK_TO
+  track_axis:  NEG_Z
+  up_axis:     Y
+  target_object_name_pattern: "{vehicle_prefix}_Mirror_R"   # e.g. Hilux_Mirror_R
+
+lens:
+  focal_length_mm: 200              # telephoto; H-FOV ≈ 10.3° at 36 mm sensor
+  sensor_fit:      HORIZONTAL
+  sensor_width_mm: 36.0
+  clip_start_m:    0.10
+  clip_end_m:      500.0
+
+output:
+  resolution_x:          1920
+  resolution_y:          1080
+  resolution_percentage: 100
+
+render:
+  engine: CYCLES
+  cycles:
+    samples:             512
+    preview_samples:     128
+    max_bounces:         12
+    glossy_bounces:      6
+    transmission_bounces: 4
+    use_denoising:       true
+    denoiser:            OPENIMAGEDENOISE
+
+scene_setup:
+  ego_ray_visibility:
+    visible_camera: false
+    visible_glossy: true
+    visible_shadow: true
+    visible_diffuse: true
+    visible_transmission: true
+    visible_volume_scatter: true
+  mirror_shading:
+    use_smooth: true
+  world:
+    type: sky_background
+    color: [0.55, 0.70, 0.95]
+    strength: 1.5

@@ -1,0 +1,36 @@
+# Large caravan (Hobby Prestige-like) — geometry config
+# Backup of parameters already baked into assets/blender-caravan/large_caravan.blend.
+# All linear values in meters, angles in degrees.
+
+model: large_caravan
+source_blend: assets/blender-caravan/large_caravan.blend
+
+# Local-coordinate convention:
+#   origin = ball coupler ground projection  (Z = 0)
+#   +X = right,  -X = left
+#   +Y = forward (towing direction — drawbar tip points here)
+#   +Z = up
+# Placement rule: set object.location = vehicle.hitch_ground_projection
+# to snap caravan and vehicle onto the same ground plane without float/sink.
+coordinate_system: coupler_ground_projection
+
+origin:
+  position:  [0.0, 0.0, 0.0]
+  rotation:  [0.0, 0.0, 0.0]
+
+dimensions:
+  length: 6.876   # along Y
+  width:  2.500   # along X
+  height: 2.851   # along Z
+
+bounds:
+  x: [-1.250,  1.250]
+  y: [-6.776,  0.100]   # origin shifted back 0.1 m from drawbar tip for tighter hookup
+  z: [ 0.000,  2.851]
+
+facing: +Y
+
+coupler:
+  ground_projection: [0.0, 0.0, 0.0]
+  ball_center:       [0.0, 0.0, 0.42]
+  ball_height:       0.42

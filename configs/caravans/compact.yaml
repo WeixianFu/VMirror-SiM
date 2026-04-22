@@ -1,0 +1,44 @@
+# Compact caravan (Eriba Touring-like) — geometry config
+# Backup of parameters already baked into assets/blender-caravan/compact_caravan.blend.
+# All linear values in meters, angles in degrees.
+
+model: compact_caravan
+source_blend: assets/blender-caravan/compact_caravan.blend
+
+# Local-coordinate convention:
+#   origin = ball coupler ground projection  (Z = 0)
+#   +X = right,  -X = left
+#   +Y = forward (towing direction — drawbar tip points here)
+#   +Z = up
+# Placement rule: set object.location = vehicle.hitch_ground_projection
+# to snap caravan and vehicle onto the same ground plane without float/sink.
+coordinate_system: coupler_ground_projection
+
+# Origin of the model in world coordinates after import (identity transform).
+origin:
+  position:  [0.0, 0.0, 0.0]
+  rotation:  [0.0, 0.0, 0.0]
+
+# Axis-aligned bounding box dimensions (world frame).
+dimensions:
+  length: 5.546   # along Y (drawbar tip to rear wall)
+  width:  2.080   # along X
+  height: 2.286   # along Z
+
+# Vertex extents in the model's local (= world) frame.
+# Body extends in -Y; drawbar/coupler sits at Y = 0 (origin).
+bounds:
+  x: [-1.040,  1.040]
+  y: [-5.446,  0.100]   # origin shifted back 0.1 m from drawbar tip for tighter hookup
+  z: [ 0.000,  2.286]
+
+# Forward direction the model is facing in its stored pose.
+facing: +Y
+
+# Ball coupler geometry.
+# The coupler ball's ground projection is at the model origin (0,0,0);
+# the physical ball sits 0.42 m directly above (ISO 50 mm ball coupler).
+coupler:
+  ground_projection: [0.0, 0.0, 0.0]
+  ball_center:       [0.0, 0.0, 0.42]
+  ball_height:       0.42

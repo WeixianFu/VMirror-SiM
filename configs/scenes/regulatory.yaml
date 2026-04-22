@@ -1,0 +1,56 @@
+# Regulatory scene — ECE R46 field-of-vision test setup (divided 2+ lane road)
+# All linear values in meters.
+
+model: scene_regulatory
+source_blend: assets/blender-scenes/scene_regulatory.blend
+
+# Coordinate convention: origin = global = vehicle front-axle ground projection.
+#   +X right, +Y forward, +Z up; ground plane at Z = 0.
+# Import with identity transform. R46 test-point poles raised to sit on Z = 0
+# (fix applied to source .blend).
+coordinate_system: global_origin_equals_vehicle_origin
+
+# Road layout: narrower than the highway / lane-change scenes.
+bounds:
+  road:    { x: [-10.88, 5.62],  y: [-80.0, 30.0] }
+  with_shoulders: { x: [-13.88, 8.62], y: [-80.0, 30.0] }
+  ground:  { x: [-100.0, 100.0], y: [-100.0, 100.0] }
+
+# Ego sits in the lane adjacent to the median (X ∈ [-1.88, +1.88], center 0).
+lanes:
+  ego_center_x:       0.0
+  adjacent_right_x:  +3.75   # one lane to the right
+  lane_width:         3.75
+  median_inner_edge_x: -2.0
+  right_road_edge_x:  +5.62
+
+# R46 fields-of-vision (ground-painted zones).
+r46_zones:
+  # Near zone: 1 m wide, from 4 m to 20 m rear.
+  driver_near:     { x: [-2.25, -1.25], y: [-20.1, -4.1] }
+  passenger_near:  { x: [ 1.25,  2.25], y: [-20.1, -4.1] }
+  # Far zone: 4 m wide, from 20 m to 80 m rear.
+  driver_far:      { x: [-5.25, -1.25], y: [-80.1, -20.1] }
+  passenger_far:   { x: [ 1.25,  5.25], y: [-80.1, -20.1] }
+  # Centerline boundaries between driver/passenger halves.
+  boundary_driver_x:    -1.25   # strip at Y ∈ [-80.1, 0]
+  boundary_passenger_x: +1.25
+
+# R46 test-point poles (1 m tall, base at Z = 0). Names encode zone, side,
+# corner, and distance label.
+test_poles:
+  height: 1.0
+  radius: 0.05
+  entries:
+    - { name: R46_P1_Drv_FarInner_20m,    side: driver,    pos: far_inner,  y: -20.0 }
+    - { name: R46_P2_Drv_FarOuter_20m,    side: driver,    pos: far_outer,  y: -20.0 }
+    - { name: R46_P3_Drv_NearMid_4m,      side: driver,    pos: near_mid,   y: -4.0  }
+    - { name: R46_P4_Drv_NearOuter_4m,    side: driver,    pos: near_outer, y: -4.0  }
+    - { name: R46_P5_Drv_FarMid_40m,      side: driver,    pos: far_mid,    y: -40.0 }
+    - { name: R46_P1_Pass_FarInner_20m,   side: passenger, pos: far_inner,  y: -20.0 }
+    - { name: R46_P2_Pass_FarOuter_20m,   side: passenger, pos: far_outer,  y: -20.0 }
+    - { name: R46_P3_Pass_NearMid_4m,     side: passenger, pos: near_mid,   y: -4.0  }
+    - { name: R46_P4_Pass_NearOuter_4m,   side: passenger, pos: near_outer, y: -4.0  }
+    - { name: R46_P5_Pass_FarMid_40m,     side: passenger, pos: far_mid,    y: -40.0 }
+
+sun_light: { location: [0.0, 0.0, 10.0] }

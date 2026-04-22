@@ -1,0 +1,77 @@
+# Standard convex mirror — right (passenger side, LHD)
+# All linear values in meters, angles in degrees.
+
+model: standard_convex_R
+source_blend: assets/blender-mirror/standard_convex_R.blend
+source_object: Mirror_Glass_StandardConvex_R
+
+# Local-coordinate convention for this mirror:
+#   origin = mount point (arm attachment to vehicle A-pillar / sail triangle)
+#   +X = outward (for the RIGHT mirror, outward is world +X)
+#   +Y = forward (drive direction, matches vehicle +Y)
+#   +Z = up
+#
+# The mirror has NO global coordinates — always expressed relative to
+# vehicle.mirror_mount.right. Final world pose:
+#     world_pos = vehicle.mirror_mount.right + glass_center_offset.vector
+# Rotation is not baked: computed dynamically from eye + target per scene.
+coordinate_system: mount_relative
+
+# Glass dimensions and analytical convex sphere geometry.
+# The mesh is a dense rectangular grid whose Z follows an analytical sphere:
+#   z(r) = bump - (R - sqrt(R^2 - r^2)),  with r = sqrt(x^2 + y^2)
+# This produces a smooth normal field and eliminates per-triangle facet
+# artifacts that a low-poly mirror would cause in a curved reflection.
+glass_size:
+  width:  0.180     # along local X
+  height: 0.120    # along local Y
+  bump:   0.0044    # along local Z (convex protrusion at center)
+geometry:
+  shape:           analytical_sphere     # z(r) = bump - (R - sqrt(R^2 - r^2))
+  sphere_radius:   1.3210        # m, derived from bump and half-diagonal
+  mesh_resolution: [256, 256]            # quads along (X, Y)
+  mesh_quads:      65536
+  mesh_verts:      66049
+
+# Glass center position relative to the mount point, expressed in
+# vehicle-aligned axes (mount = origin, +X = right, +Y = forward, +Z = up).
+glass_center_offset:
+  lateral:      0.150   # outward (for RIGHT mirror, outward = world +X)
+  forward:     -0.100   # along vehicle Y (negative = rearward of mount)
+  rise:        0.050    # along vehicle Z, glass slightly above mount
+  vector: [+0.150, -0.100, +0.050]   # RIGHT: outward = +X in vehicle frame
+
+# Orientation policy.
+# Rotation is computed at scene-build time via reflection law:
+#   mirror normal ∝ normalize(unit(eye − glass_center) + unit(target − glass_center))
+# Recomputed per vehicle/eye/target; never baked into the asset.
+orientation:
+  policy: dynamic_reflection
+  # Mesh convention: face normals point local +Z (toward flat back side, away
+  # from the convex surface). Local -Z is the convex/reflective side.
+  # Apply rotation so local -Z aligns with the outward reflection normal,
+  # i.e. local +Z points INWARD relative to that bisector.
+
+# Placement procedure — do NOT shift the mesh; shifting couples the offset
+# to the rotation and lands the glass somewhere unintended:
+#   object.location        = vehicle.mirror_mount.right + glass_center_offset.vector
+#   object.rotation_euler  = dynamic reflection-law result
+# The glass mesh (centered on the object origin) thus lands exactly at the
+# computed world glass-center position; rotation is about that center.
+placement:
+  strategy: object_at_glass_world_position
+
+# Material convention (baked into the .blend file).
+# Mix Shader(factor = Geometry.Backfacing) assigns:
+#   - Front face (normal = local +Z, flat back) → Diffuse BSDF  (dark shell)
+#   - Back  face (local -Z, convex side)        → Glossy BSDF   (mirror reflective)
+# With the orientation policy above, the convex side faces the driver and
+# reflects correctly. Glossy roughness 0 (perfect mirror) — the dense
+# analytical-sphere mesh removes the facet aliasing that would normally
+# require a small roughness to mask.
+material:
+  front_face_shader: Diffuse   # dark back shell
+  back_face_shader:  Glossy    # reflective mirror (convex side, toward driver)
+  glossy_color:     [0.9, 0.9, 0.92]
+  glossy_roughness: 0.0
+  diffuse_color:    [0.02, 0.02, 0.02]

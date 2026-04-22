@@ -1,0 +1,80 @@
+# Driver-eye camera — LEFT mirror view (driver side, LHD)
+# Telephoto 200 mm — fills the frame with the side mirror so the reflection
+# can be analyzed directly without the cabin/dashboard taking up screen real
+# estate. All linear values in meters, angles in degrees.
+
+model: driver_camera_L
+source_blend: assets/blender-camera/driver_camera.blend    # shared asset (L/R use same camera)
+source_object: DriverCam
+
+# Placement: parent the camera to the ego vehicle and set its LOCAL position
+# to the vehicle's eye_point (different per vehicle — read from vehicle yaml).
+# The camera carries no world transform on its own.
+placement:
+  strategy: parent_to_vehicle_at_eye
+  parent_to: vehicle.ego
+  local_position_source: vehicle.eye_point
+  local_rotation_euler_deg: [0.0, 0.0, 0.0]   # superseded by Track-To below
+
+# Orientation via Track-To constraint pointing at the LEFT mirror glass object.
+track_to:
+  type:        TRACK_TO
+  track_axis:  NEG_Z
+  up_axis:     Y
+  target_object_name_pattern: "{vehicle_prefix}_Mirror_L"   # e.g. Hilux_Mirror_L
+
+# Optics (baked into .blend; documented here for traceability).
+lens:
+  focal_length_mm: 200              # telephoto; H-FOV ≈ 10.3° at 36 mm sensor
+  sensor_fit:      HORIZONTAL
+  sensor_width_mm: 36.0             # full-frame
+  clip_start_m:    0.10
+  clip_end_m:      500.0
+
+# Render output resolution.
+output:
+  resolution_x:          1920
+  resolution_y:          1080
+  resolution_percentage: 100
+
+# Render engine / sampling (baked into .blend, listed here for reference).
+render:
+  engine: CYCLES                    # REQUIRED — EEVEE does not handle the
+                                    # ray-visibility and glossy reflection
+                                    # reliably for this mirror setup.
+  cycles:
+    samples:             512        # analysis preset (1024 for final, 128 preview)
+    preview_samples:     128
+    max_bounces:         12
+    glossy_bounces:      6          # supports mirror-in-mirror reflections
+    transmission_bounces: 4
+    use_denoising:       true
+    denoiser:            OPENIMAGEDENOISE
+
+# Runtime scene setup — the camera itself is not enough; the surrounding
+# scene needs these tweaks for the mirror render to look correct.
+scene_setup:
+  # The ego vehicle body must not block rays from the camera (at the driver's
+  # eye) to the side mirror. Cycles ray visibility gives the right behaviour:
+  #   camera ray  ─ invisible  (cabin appears "transparent" to the camera)
+  #   glossy ray  ─ visible    (body/caravan still show up in mirror reflection)
+  #   shadow ray  ─ visible    (body still casts shadows on the ground)
+  ego_ray_visibility:
+    visible_camera: false
+    visible_glossy: true
+    visible_shadow: true
+    visible_diffuse: true
+    visible_transmission: true
+    visible_volume_scatter: true
+  # Mirror mesh needs smooth shading so the convex curvature is interpolated;
+  # the analytical-sphere mirror assets already have smooth shading baked in,
+  # but enforcing this at runtime is harmless and protects against accidental
+  # flat-shading from intermediate scripts.
+  mirror_shading:
+    use_smooth: true
+  # A simple sky world is required for ambient lighting on mirror reflections;
+  # scene sources typically ship without a World shader.
+  world:
+    type: sky_background
+    color: [0.55, 0.70, 0.95]
+    strength: 1.5

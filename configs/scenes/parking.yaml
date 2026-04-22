@@ -1,0 +1,38 @@
+# Parking-lot scene — open lot with cones, poles, and landmark boxes
+# All linear values in meters.
+
+model: scene_parking
+source_blend: assets/blender-scenes/scene_parking.blend
+
+# Coordinate convention: origin = global = vehicle front-axle ground projection.
+#   +X right, +Y forward, +Z up; ground plane at Z = 0.
+# Import with identity transform. All props were raised so their bases rest on
+# Z = 0 (fix applied to source .blend).
+coordinate_system: global_origin_equals_vehicle_origin
+
+# Parking surface extent.
+bounds:
+  parking_surface: { x: [-20.0, 20.0], y: [-50.0, 10.0] }   # driving area
+  ground:          { x: [-100.0, 100.0], y: [-100.0, 100.0] }
+
+# Prop grids. All items sit on the ground (base at Z = 0) after the sink fix.
+cones:
+  x_positions: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12]
+  y_positions: [-4, -12, -20, -28, -36]
+  size: { width: 0.30, height: 0.50 }   # cone footprint × height
+
+poles:
+  x_positions: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12]
+  y_positions: [-8, -16, -24, -32, -40]
+  size: { width: 0.10, height: 1.0 }
+
+landmarks:
+  # Named marker boxes, size 1.0 × 1.0 × 1.0
+  entries:
+    - { name: Landmark_landmark_left_10m,   x: -6.0,  y: -10.0 }
+    - { name: Landmark_landmark_right_10m,  x: +6.0,  y: -10.0 }
+    - { name: Landmark_landmark_center_20m, x:  0.0,  y: -20.0 }
+    - { name: Landmark_landmark_left_30m,   x: -8.0,  y: -30.0 }
+    - { name: Landmark_landmark_right_30m,  x: +8.0,  y: -30.0 }
+
+sun_light: { location: [0.0, 0.0, 10.0] }
