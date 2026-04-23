@@ -1,0 +1,102 @@
+# Default render profile for VMirror-SiM
+# Applied after scene + vehicle + caravan + mirrors + camera are loaded.
+# Referenced from camera yaml via `render_profile:`.
+
+model: default
+
+# Render engine. CYCLES is REQUIRED — EEVEE's screen-space reflections cannot
+# render the convex-mirror reflections faithfully (missing out-of-frame
+# geometry, striping artifacts).
+engine: CYCLES
+
+# Final image resolution.
+output:
+  resolution_x:          1920
+  resolution_y:          1080
+  resolution_percentage: 100     # use < 100 for quick previews
+
+# Cycles core path-tracing settings.
+cycles:
+  samples:             512       # analysis preset
+  preview_samples:     128       # interactive viewport
+  max_bounces:         12        # total ray bounces
+  diffuse_bounces:     4
+  glossy_bounces:      6         # supports mirror-in-mirror reflections
+  transmission_bounces: 4
+  transparent_max_bounces: 8
+
+  # Adaptive sampling — spend more samples on noisy pixels, fewer on clean ones.
+  adaptive_sampling:
+    enabled:      true
+    threshold:    0.01           # stop when per-pixel noise below this
+    min_samples:  0              # 0 = Cycles picks automatically
+
+  # Denoiser. OIDN runs on CPU by default; set denoising_use_gpu for Metal.
+  use_denoising:       true
+  denoiser:            OPENIMAGEDENOISE
+  denoising_use_gpu:   true      # OIDN 2.0+ on Metal; requires Blender 4.1+
+
+  # Pixel filter (anti-aliasing kernel).
+  pixel_filter_type:   BLACKMAN_HARRIS
+  filter_width:        1.5       # pixels
+
+# Apple-Silicon GPU acceleration. Apply at preferences + per-scene level.
+# Set enabled: false to fall back to CPU rendering.
+apple_silicon:
+  enabled:               true
+  compute_device_type:   METAL   # bpy.context.preferences.addons['cycles']
+                                  #   .preferences.compute_device_type
+  use_metalrt:           true    # M3 / M3 Pro / M3 Max hardware ray-tracing
+                                  #   (M1 / M2 do NOT have RT units — setting
+                                  #   ignored on those chips).
+  cycles_device:         GPU     # scene.cycles.device
+  select_all_metal_devices: true # activate every discovered Metal GPU
+
+# Persistent data — keep scene data (BVH, shaders) in memory between frames.
+# Big win for sequences and re-renders of the same scene; small memory cost.
+persistent_data: true
+
+# Ray-energy clamps (reduce firefly noise at the cost of light bias).
+# 0 disables the clamp.
+clamp:
+  direct:   0.0
+  indirect: 0.0
+
+# World / environment shader. Built by Renderer *only when the loaded .blend
+# has no World* — scene blends usually ship with their own, in which case this
+# field is a documented default that does not get applied. Moved from the
+# camera yaml's scene_setup.world so all render/environment concerns live in
+# one place.
+world:
+  type: sky_background
+  color: [0.55, 0.70, 0.95]
+  strength: 1.5
+
+# Runtime application pseudocode (loader):
+#   prefs = bpy.context.preferences.addons['cycles'].preferences
+#   if apple_silicon.enabled:
+#       prefs.compute_device_type = apple_silicon.compute_device_type
+#       for d in prefs.devices:
+#           d.use = (d.type == apple_silicon.compute_device_type)
+#       prefs.use_metalrt = apple_silicon.use_metalrt
+#       scene.cycles.device = apple_silicon.cycles_device
+#       scene.cycles.denoising_use_gpu = cycles.denoising_use_gpu
+#
+#   scene.render.engine                   = engine
+#   scene.render.resolution_x             = output.resolution_x
+#   scene.render.resolution_y             = output.resolution_y
+#   scene.render.resolution_percentage    = output.resolution_percentage
+#   scene.render.use_persistent_data      = persistent_data
+#   scene.cycles.samples                  = cycles.samples
+#   scene.cycles.max_bounces              = cycles.max_bounces
+#   scene.cycles.glossy_bounces           = cycles.glossy_bounces
+#   scene.cycles.transmission_bounces     = cycles.transmission_bounces
+#   scene.cycles.use_adaptive_sampling    = cycles.adaptive_sampling.enabled
+#   scene.cycles.adaptive_threshold       = cycles.adaptive_sampling.threshold
+#   scene.cycles.adaptive_min_samples     = cycles.adaptive_sampling.min_samples
+#   scene.cycles.use_denoising            = cycles.use_denoising
+#   scene.cycles.denoiser                 = cycles.denoiser
+#   scene.cycles.pixel_filter_type        = cycles.pixel_filter_type
+#   scene.cycles.filter_width             = cycles.filter_width
+#   scene.cycles.sample_clamp_direct      = clamp.direct
+#   scene.cycles.sample_clamp_indirect    = clamp.indirect

@@ -1,0 +1,45 @@
+# Driver-eye camera — LEFT mirror view, WIDE framing (driver side, LHD)
+# 150 mm lens at 36 mm sensor → HFOV ≈ 13.68° (about 30 % wider than the
+# 200 mm close-up). Paired with `render/wide.yaml` (2560 × 1440) so the
+# per-pixel angular resolution on the mirror stays at 187 px/° — the mirror
+# occupies the same number of pixels as in the 200 mm close-up, with an
+# extra ~15 % of pixels on each side showing the surrounding cabin/scene.
+# All linear values in meters, angles in degrees.
+
+model: driver_camera_wide_L
+source_blend: assets/blender-camera/driver_camera.blend    # shared asset (L/R/wide use same camera)
+source_object: DriverCam
+
+# Render profile — wide output resolution matched to the 150 mm FOV.
+render_profile: configs/render/wide.yaml
+
+placement:
+  strategy: parent_to_vehicle_at_eye
+  parent_to: vehicle.ego
+  local_position_source: vehicle.eye_point
+  local_rotation_euler_deg: [0.0, 0.0, 0.0]   # superseded by Track-To below
+
+track_to:
+  type:        TRACK_TO
+  track_axis:  NEG_Z
+  up_axis:     Y
+  target_object_name_pattern: "{vehicle_prefix}_Mirror_L"   # e.g. Hilux_Mirror_L
+
+lens:
+  focal_length_mm: 150              # HFOV ≈ 13.68° at 36 mm sensor
+  sensor_fit:      HORIZONTAL
+  sensor_width_mm: 36.0             # full-frame
+  clip_start_m:    0.10
+  clip_end_m:      500.0
+
+scene_setup:
+  ego_ray_visibility:
+    visible_camera: false
+    visible_glossy: true
+    visible_shadow: true
+    visible_diffuse: true
+    visible_transmission: true
+    visible_volume_scatter: true
+  mirror_shading:
+    use_smooth: true
+  # (world spec lives in the render profile; camera no longer carries it.)

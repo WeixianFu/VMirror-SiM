@@ -22,18 +22,21 @@ coordinate_system: mount_relative
 # Glass dimensions and analytical convex sphere geometry.
 # The mesh is a dense rectangular grid whose Z follows an analytical sphere:
 #   z(r) = bump - (R - sqrt(R^2 - r^2)),  with r = sqrt(x^2 + y^2)
-# This produces a smooth normal field and eliminates per-triangle facet
-# artifacts that a low-poly mirror would cause in a curved reflection.
+# The dome bulges toward local +Z (center at Z = bump, rim at Z = 0); face
+# normals point +Z (outward from the convex reflective side).
+# The high density gives a smooth normal field so roughness 0 renders cleanly.
 glass_size:
   width:  0.190     # along local X
   height: 0.070    # along local Y
-  bump:   0.0096    # along local Z (convex protrusion at center)
+  bump:   0.0096    # along local Z (convex protrusion at center, toward +Z)
 geometry:
   shape:           analytical_sphere     # z(r) = bump - (R - sqrt(R^2 - r^2))
   sphere_radius:   0.5401        # m, derived from bump and half-diagonal
   mesh_resolution: [256, 256]            # quads along (X, Y)
   mesh_quads:      65536
   mesh_verts:      66049
+  bulge_axis:      +Z                    # convex outward direction
+  face_normals:    +Z                    # agree with bulge (outward = reflective side)
 
 # Glass center position relative to the mount point, expressed in
 # vehicle-aligned axes (mount = origin, +X = right, +Y = forward, +Z = up).
@@ -45,19 +48,25 @@ glass_center_offset:
 
 # Orientation policy.
 # Rotation is computed at scene-build time via reflection law:
-#   mirror normal ∝ normalize(unit(eye − glass_center) + unit(target − glass_center))
+#   outward_n = normalize(unit(eye − glass_center) + unit(target − glass_center))
+# The mesh's convex face (+Z, where face normals point) must face the driver,
+# so align local +Z with outward_n:
+#   z_axis = +outward_n
+#   x_axis = normalize(world_up × z_axis)
+#   y_axis = z_axis × x_axis
+#   rotation_matrix = [x_axis | y_axis | z_axis]
 # Recomputed per vehicle/eye/target; never baked into the asset.
 orientation:
   policy: dynamic_reflection
-  # Mesh convention: face normals point local +Z (toward flat back side, away
-  # from the convex surface). Local -Z is the convex/reflective side.
-  # Apply rotation so local -Z aligns with the outward reflection normal,
-  # i.e. local +Z points INWARD relative to that bisector.
+  # Reference rotation at the default pose — computed via the reflection
+  # law with vehicle=passat, target=(0, -20, 0.5). Used when policy=explicit;
+  # run ConfigExporter to bake values for a different vehicle.
+  rotation_euler_deg: [87.563414, 0.0, 25.974817]
 
 # Placement procedure — do NOT shift the mesh; shifting couples the offset
 # to the rotation and lands the glass somewhere unintended:
 #   object.location        = vehicle.mirror_mount.left + glass_center_offset.vector
-#   object.rotation_euler  = dynamic reflection-law result
+#   object.rotation_euler  = dynamic reflection-law result (z_axis = +outward_n)
 # The glass mesh (centered on the object origin) thus lands exactly at the
 # computed world glass-center position; rotation is about that center.
 placement:
@@ -65,15 +74,13 @@ placement:
 
 # Material convention (baked into the .blend file).
 # Mix Shader(factor = Geometry.Backfacing) assigns:
-#   - Front face (normal = local +Z, flat back) → Diffuse BSDF  (dark shell)
-#   - Back  face (local -Z, convex side)        → Glossy BSDF   (mirror reflective)
+#   - Front face (normal = local +Z, convex / camera-facing) → Glossy BSDF (reflective mirror)
+#   - Back  face (local -Z, toward the inside of the shell)  → Diffuse BSDF (dark shell)
 # With the orientation policy above, the convex side faces the driver and
-# reflects correctly. Glossy roughness 0 (perfect mirror) — the dense
-# analytical-sphere mesh removes the facet aliasing that would normally
-# require a small roughness to mask.
+# the camera sees the front face → Glossy reflection.
 material:
-  front_face_shader: Diffuse   # dark back shell
-  back_face_shader:  Glossy    # reflective mirror (convex side, toward driver)
+  front_face_shader: Glossy    # reflective mirror (convex side, toward driver)
+  back_face_shader:  Diffuse   # dark back shell
   glossy_color:     [0.9, 0.9, 0.92]
   glossy_roughness: 0.0
   diffuse_color:    [0.02, 0.02, 0.02]

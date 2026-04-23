@@ -1,0 +1,41 @@
+# Driver-eye camera — RIGHT mirror view, WIDE framing (passenger side, LHD)
+# 150 mm lens at 36 mm sensor → HFOV ≈ 13.68°. Paired with `render/wide.yaml`
+# (2560 × 1440) to keep the same per-pixel angular resolution on the mirror.
+# All linear values in meters, angles in degrees.
+
+model: driver_camera_wide_R
+source_blend: assets/blender-camera/driver_camera.blend    # shared asset
+source_object: DriverCam
+
+render_profile: configs/render/wide.yaml
+
+placement:
+  strategy: parent_to_vehicle_at_eye
+  parent_to: vehicle.ego
+  local_position_source: vehicle.eye_point
+  local_rotation_euler_deg: [0.0, 0.0, 0.0]
+
+track_to:
+  type:        TRACK_TO
+  track_axis:  NEG_Z
+  up_axis:     Y
+  target_object_name_pattern: "{vehicle_prefix}_Mirror_R"
+
+lens:
+  focal_length_mm: 150
+  sensor_fit:      HORIZONTAL
+  sensor_width_mm: 36.0
+  clip_start_m:    0.10
+  clip_end_m:      500.0
+
+scene_setup:
+  ego_ray_visibility:
+    visible_camera: false
+    visible_glossy: true
+    visible_shadow: true
+    visible_diffuse: true
+    visible_transmission: true
+    visible_volume_scatter: true
+  mirror_shading:
+    use_smooth: true
+  # (world spec lives in the render profile; camera no longer carries it.)

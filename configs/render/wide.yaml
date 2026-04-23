@@ -1,0 +1,61 @@
+# Wide render profile for VMirror-SiM
+# Same engine / sampling / GPU settings as default.yaml, but with 2560×1440
+# output so that a wider-FOV camera (e.g. 150 mm) keeps the same per-pixel
+# angular resolution on the mirror as the 200 mm camera does at 1920×1080.
+#
+# Referenced from camera yaml via `render_profile:`.
+
+model: wide
+
+engine: CYCLES
+
+# Output resolution — 2560 × 1440 (QHD 16:9). The extra pixels around the
+# centered mirror region maintain 187 px/° angular resolution on the mirror
+# when paired with a 150 mm / 36 mm sensor camera (HFOV ≈ 13.68°).
+output:
+  resolution_x:          2560
+  resolution_y:          1440
+  resolution_percentage: 100
+
+cycles:
+  samples:             512          # same per-pixel budget as default; adaptive
+                                    # sampling handles the larger pixel count
+                                    # automatically
+  preview_samples:     128
+  max_bounces:         12
+  diffuse_bounces:     4
+  glossy_bounces:      6
+  transmission_bounces: 4
+  transparent_max_bounces: 8
+
+  adaptive_sampling:
+    enabled:      true
+    threshold:    0.01
+    min_samples:  0
+
+  use_denoising:       true
+  denoiser:            OPENIMAGEDENOISE
+  denoising_use_gpu:   true
+
+  pixel_filter_type:   BLACKMAN_HARRIS
+  filter_width:        1.5
+
+apple_silicon:
+  enabled:                  true
+  compute_device_type:      METAL
+  use_metalrt:              true
+  cycles_device:            GPU
+  select_all_metal_devices: true
+
+persistent_data: true
+
+clamp:
+  direct:   0.0
+  indirect: 0.0
+
+# World / environment shader — applied only when the loaded scene .blend has
+# no World shader.
+world:
+  type: sky_background
+  color: [0.55, 0.70, 0.95]
+  strength: 1.5
