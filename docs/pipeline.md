@@ -230,11 +230,26 @@ visually "wrong", only rearranged.
 - **Left-top** — L mirror view (binds `{vehicle}_DriverCam_L` via
   ``use_local_camera``), Rendered shading.
 - **Left-bottom** — R mirror view (`{vehicle}_DriverCam_R`), Rendered shading.
-- **Right** — free-orbit perspective, Solid shading (manipulation pane).
+- **Right** — Solid shading manipulation pane; starting view controlled by
+  ``right_view`` (see below).
 - Requires both cameras present in the blend. Build them with
   ``CameraRig(side="both")`` in one call, or two ``CameraRig`` calls (L
   then R). Missing a camera → Renderer logs a warning and falls back to
-  2-pane ``split`` layout.
+  2-pane ``split`` layout (with the same ``right_view``).
+
+**`right_view`** (honored for ``"split"`` and ``"triple"``; ignored for ``"single"``):
+
+| value     | result                                                                             |
+| --------- | ---------------------------------------------------------------------------------- |
+| ``"top"`` | orthographic top-down centered between ego and caravan (default; best for moving objects on the ground) |
+| ``"front"`` | orthographic front view (looking +Y)                                             |
+| ``"side"``  | orthographic right-side view                                                     |
+| ``"free"``  | Blender's default User Perspective (free orbit)                                  |
+
+You can always change views interactively in Blender — hover the right pane
+and press Numpad 7/1/3 (top/front/side) or 5 to toggle ortho/persp. On
+MacBooks without a numeric keypad, enable **Edit → Preferences → Input →
+Emulate Numpad** so the main number row substitutes for the missing keys.
 
 **`layout="single"`**:
 - Every 3D viewport area (including non-Layout workspaces) is set to camera

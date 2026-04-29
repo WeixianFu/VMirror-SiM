@@ -63,9 +63,15 @@ are ISO-8601 (local). "Unreleased" collects work not yet tagged.
   visually broken.
 - `layout="triple"` — three panes (state-machine across two ticks to let
   Blender finalize each `area_split`): left-top binds L camera via
-  `use_local_camera`, left-bottom binds R camera, right is free-orbit
-  Solid. Both camera panes use `view_camera_zoom = 18` so the frame fills
-  ~70 % of the pane. Missing a camera → falls back to `split`.
+  `use_local_camera`, left-bottom binds R camera, right is the manipulation
+  pane (Solid shading). Both camera panes use `view_camera_zoom = 18` so
+  the frame fills ~70 % of the pane. Missing a camera → falls back to
+  `split`.
+- `right_view` parameter (split + triple) — start the manipulation pane in
+  `top` (default, ortho top-down centered between ego and caravan), `front`,
+  `side`, or `free` perspective. Implemented via
+  `bpy.ops.view3d.view_axis` with a quaternion fallback if the operator
+  rejects context.
 - In GUI mode Blender stdout/stderr is captured to
   `tmp/vmirror_sim_*/blender_stdout.log`; the path comes back in the
   report dict as `_log_path` for debugging deferred callbacks.

@@ -1,0 +1,29 @@
+# Conda environment for VMirror-SiM.
+# Single source of truth — every Python dep this project needs is listed here.
+#
+# Blender itself is NOT installed via conda — grab it from blender.org or
+# `brew install --cask blender`. This file only covers the Python side
+# that drives Blender via subprocess.
+#
+# Usage:
+#   conda env create -f environment.yml
+#   conda activate vmirror-sim
+#   jupyter lab     # or just `python -c "from src import SimulationPipeline; ..."`
+
+name: vmirror-sim
+channels:
+  - conda-forge
+
+dependencies:
+  - python>=3.9,<3.14
+
+  # Runtime — only third-party import in src/
+  - pyyaml>=6.0
+
+  # Notebook UX
+  - jupyterlab>=4.0
+  - ipykernel>=6.25
+  - ipywidgets>=8.0
+
+  # pip kept around so you can `pip install` extras inside this env on demand
+  - pip

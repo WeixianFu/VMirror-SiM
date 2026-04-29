@@ -262,7 +262,18 @@ def _build():
     side = report["metadata"].get("camera_side") or ""
     ego_name    = vehicle_name + "_ego" if vehicle_name else None
     mirror_name = lambda s: vehicle_name + "_Mirror_" + s
-    cam_name    = vehicle_name + "_DriverCam_" + side if vehicle_name and side else None
+    # For side='both' (or any non-L/R value), pick L for probing — both cameras
+    # are parented to ego at the same eye_point, so local_position is identical.
+    if vehicle_name:
+        probe_side = side if side in ("L", "R") else "L"
+        cam_name = vehicle_name + "_DriverCam_" + probe_side
+        if bpy.data.objects.get(cam_name) is None:
+            other = "R" if probe_side == "L" else "L"
+            alt = vehicle_name + "_DriverCam_" + other
+            if bpy.data.objects.get(alt) is not None:
+                cam_name = alt
+    else:
+        cam_name = None
 
     ego = bpy.data.objects.get(ego_name) if ego_name else None
     if ego is None:
