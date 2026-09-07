@@ -5,22 +5,16 @@ model: towing_main_R
 source_blend: assets/blender-mirror/towing_main_R.blend
 source_object: Mirror_Glass_TowingMain_R
 
-# Local-coordinate convention for this mirror:
-#   origin = mount point (arm attachment to vehicle A-pillar / sail triangle)
-#   +X = outward (for the RIGHT mirror, outward is world +X)
-#   +Y = forward (drive direction, matches vehicle +Y)
-#   +Z = up
-#
-# The mirror has NO global coordinates — always expressed relative to
-# vehicle.mirror_mount.right. Final world pose:
-#     world_pos = vehicle.mirror_mount.right + glass_center_offset.vector
-# Rotation is not baked: computed dynamically from eye + target per scene.
+# Placement offsets use VEHICLE axes (+X right, +Y forward, +Z up).
+# Glass mesh origin is its nominal center; mesh X/Y span width/height,
+# and mesh +Z is the convex normal. The object is parented to the vehicle.
+# Vehicle-local position = mirror_mount + glass_center_offset.vector.
 coordinate_system: mount_relative
 
 # Glass dimensions and analytical convex sphere geometry.
 # The mesh is a dense rectangular grid whose Z follows an analytical sphere:
 #   z(r) = bump - (R - sqrt(R^2 - r^2)),  with r = sqrt(x^2 + y^2)
-# The dome bulges toward local +Z (center at Z = bump, rim at Z = 0); face
+# The dome bulges toward local +Z (center at Z = bump, corners near Z = 0); face
 # normals point +Z (outward from the convex reflective side).
 # The high density gives a smooth normal field so roughness 0 renders cleanly.
 glass_size:
@@ -39,10 +33,10 @@ geometry:
 # Glass center position relative to the mount point, expressed in
 # vehicle-aligned axes (mount = origin, +X = right, +Y = forward, +Z = up).
 glass_center_offset:
-  lateral:      0.150   # outward (for RIGHT mirror, outward = world +X)
+  lateral:      0.650   # outward (for RIGHT mirror, outward = world +X)
   forward:     -0.100   # along vehicle Y (negative = rearward of mount)
   rise:        0.050    # along vehicle Z, glass slightly above mount
-  vector: [+0.150, -0.100, +0.050]   # RIGHT: outward = +X in vehicle frame
+  vector: [+0.650, -0.100, +0.050]   # RIGHT: outward = +X in vehicle frame
 
 # Orientation policy.
 # Rotation is computed at scene-build time via reflection law:
@@ -59,7 +53,7 @@ orientation:
   # Reference rotation at the default pose — computed via the reflection
   # law with vehicle=passat, target=(0, -20, 0.5). Used when policy=explicit;
   # run ConfigExporter to bake values for a different vehicle.
-  rotation_euler_deg: [90.335536, -0.0, -36.109639]
+  rotation_euler_deg: [90.506569, 0.0, -39.638326]
 
 # Placement procedure — do NOT shift the mesh; shifting couples the offset
 # to the rotation and lands the glass somewhere unintended:
@@ -82,3 +76,11 @@ material:
   glossy_color:     [0.9, 0.9, 0.92]
   glossy_roughness: 0.0
   diffuse_color:    [0.02, 0.02, 0.02]
+
+# Load the lower mirror alongside this main glass.
+auxiliary:
+  mirror: towing_wide_angle
+
+# Entire glass assembly clears the actual vehicle/caravan side envelope.
+installation:
+  outboard_clearance_m: 0.05

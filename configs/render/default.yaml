@@ -56,11 +56,7 @@ clamp:
   direct:   0.0
   indirect: 0.0
 
-# World / environment shader. Built by Renderer *only when the loaded .blend
-# has no World* — scene blends usually ship with their own, in which case this
-# field is a documented default that does not get applied. Moved from the
-# camera yaml's scene_setup.world so all render/environment concerns live in
-# one place.
+# Authoritative environment, reapplied on every render and preview.
 world:
   type: sky_background
   color: [0.55, 0.70, 0.95]

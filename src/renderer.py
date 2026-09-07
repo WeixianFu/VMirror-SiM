@@ -2,13 +2,13 @@
 
 Scope
 -----
-6c. World   — build a sky_background world if the loaded blend has none, using
+6c. World   — apply the configured sky_background world on every call, using
               ``world:`` from the render yaml (moved here from the camera yaml).
 7.  Profile — engine / resolution / cycles sampling / automatic local GPU / etc.
 7b. Render  — ``bpy.ops.render.render(write_still=True)`` when ``output`` is set.
 
-Reads an input ``.blend`` (CameraRig's output); does not modify geometry or
-camera. Render settings are scene-level and persist only within this subprocess
+Reads an input ``.blend`` (CameraRig's output); preserves geometry and refits
+opted-in cameras to the output aspect. Settings persist only within this subprocess
 unless ``output_blend`` is set (then saved back to disk).
 
 Notebook usage
@@ -171,7 +171,9 @@ report = {"step": "renderer", "render": None}
 
 
 def _ensure_sky_world(spec):
-    w = bpy.data.worlds.new("SkyWorld")
+    if spec.get("type") != "sky_background":
+        raise ValueError("Unsupported world.type: %r" % spec.get("type"))
+    w = bpy.data.worlds.get("VMirrorWorld") or bpy.data.worlds.new("VMirrorWorld")
     w.use_nodes = True
     nt = w.node_tree
     for n in list(nt.nodes):
@@ -454,14 +456,18 @@ def _build():
     _open_blend(payload["input_blend"])
     rp = payload["render_cfg"]
 
-    # Step 6c — world shader from render yaml if the loaded blend has none.
+    # The configured environment is authoritative, including on repeated renders.
     world_spec = rp.get("world")
-    if world_spec and bpy.context.scene.world is None:
+    if world_spec:
         _ensure_sky_world(world_spec)
+        report["world"] = world_spec
 
     # Step 7 — render profile
     report["render"] = _apply_profile(rp)
     bpy.context.view_layer.update()
+    report["framing"] = {cam.name: _fit_mirror_camera(cam)
+                         for cam in bpy.context.scene.objects
+                         if cam.type == "CAMERA" and "vmirror_framing" in cam}
 
     # Preview mode: flip viewport to camera view + Rendered shading, don't render
     if payload.get("preview"):

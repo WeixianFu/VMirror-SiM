@@ -1,5 +1,8 @@
 # Model Import Guide
 
+See [configuration semantics](configuration.md) for the current installation and
+framing options. Asset names do not imply real-vehicle dimensions.
+
 End-to-end loading procedure for VMirror-SiM scenes. Each section lists the
 asset and the yaml fields it consumes.
 
@@ -93,18 +96,17 @@ transform.
 
 | Asset (any of)        | yaml                     | Fields actually used                     |
 | --------------------- | ------------------------ | ---------------------------------------- |
-| `scene_highway.blend` | `scenes/highway.yaml`    | `source_blend` (only)                    |
+| `scene_highway.blend` | `scenes/highway.yaml`    | `source_blend`, `sun_light`                    |
 | `scene_lane_change.blend` | `scenes/lane_change.yaml` | `source_blend`                       |
 | `scene_parking.blend` | `scenes/parking.yaml`    | `source_blend`                           |
 | `scene_regulatory.blend` | `scenes/regulatory.yaml` | `source_blend`                       |
 
-The other yaml fields (`bounds`, `lanes`, `marking_x_centers`,
+The scene `sun_light` block is applied at build time. Other fields (`bounds`, `lanes`, `marking_x_centers`,
 `approaching_vehicles`, etc.) are *informational* — they document what the
 blend already contains. Loaders may use them for validation but no transform
 is applied based on them.
 
-Scene blends ship without a World shader; one must be added at scene-setup
-time (see §4.6).
+Renderer applies the configured World on every render/preview (see §4.7).
 
 ### 4.2 Vehicle (ego)
 
@@ -124,7 +126,9 @@ Append the single mesh `node_0` from the vehicle blend at the scene origin.
 
 ### 4.3 Caravan
 
-Append `node_0` from the caravan blend. Set `object.location` =
+Append `source_object` from the caravan YAML (default `node_0`; large2 uses
+`node_0.001`). Parent it to the vehicle with an identity parent inverse.
+Set local `object.location` =
 `vehicle.hitch_ground_projection`. The caravan's own origin is its
 coupler's ground projection (Z = 0), so the alignment puts the trailer onto
 the same ground plane as the vehicle.
@@ -133,7 +137,7 @@ the same ground plane as the vehicle.
 | ----------------- | ----------------------------------------------- |
 | `source_blend`    | path to caravan .blend                          |
 | `coupler.ground_projection` | always `[0, 0, 0]` (= caravan origin) |
-| `coupler.ball_height`       | `0.420` m (ISO 50 mm ball; reference) |
+| `coupler.ball_height`       | `0.420` m (model reference; no contact validation) |
 | `bounds.y` / `dimensions`   | informational                       |
 
 The caravan mesh has its drawbar tip ~0.10 m forward of its origin (intentional
@@ -142,7 +146,7 @@ overlap with vehicle hitch to close the gap to ~0.10–0.20 m).
 ### 4.4 Mirrors
 
 For each side `{L, R}`, load the corresponding mirror yaml. Two assets exist:
-six classes have separate `*_L.blend` / `*_R.blend`; three classes share one
+three classes have separate `*_L.blend` / `*_R.blend`; three classes share one
 `.blend` (electric_sub, towing_wide_angle, clip_on_blind_spot).
 
 | Mirror yaml field           | Purpose                                       |
@@ -162,13 +166,16 @@ six classes have separate `*_L.blend` / `*_R.blend`; three classes share one
 
 **Placement** (per side):
 ```
-glass_world = vehicle.mirror_mount.<side> + glass_center_offset.vector
-object.location       = glass_world
+glass_local = vehicle.mirror_mount.<side> + glass_center_offset.vector
+object.parent         = ego
+object.location       = glass_local
+glass_world           = ego.matrix_world @ glass_local
 if policy == "explicit":
     object.rotation_euler = radians(rotation_euler_deg)          # verbatim bake
 else:   # dynamic_reflection
-    object.rotation_euler = mirror_orientation(glass_world,
-                                               vehicle.eye_point, target)
+    world_rotation = mirror_orientation(glass_world,
+                                        ego.matrix_world @ vehicle.eye_point, target)
+    object.rotation_euler = vehicle_inverse_rotation @ world_rotation
 ```
 
 `target` is the world point the mirror should aim at (default
@@ -188,7 +195,7 @@ to_target = normalize(target − glass_world)
 outward_n = normalize(to_eye + to_target)        # outward reflection normal
 
 # Mesh convention: the analytical-sphere mesh is a single-sided dome whose
-# bulge points local +Z (center at Z = bump, rim at Z = 0). Face normals
+# bulge points local +Z (center at Z = bump, corners near Z = 0). Face normals
 # also point local +Z — i.e., outward from the convex/reflective face.
 # The rotation aligns local +Z with the outward reflection normal so the
 # convex side faces the driver and the camera sees the front face.
@@ -203,7 +210,7 @@ rotation_matrix = [x_axis | y_axis | z_axis]
   *no* mesh translation. Translating the mesh would couple the offset to
   the rotation and place the glass somewhere unintended.
 - The mesh is a 256×256 analytical-sphere grid (single-sided dome, bulge
-  toward local +Z; Z = bump at center, Z = 0 at rim). Face normals point
+  toward local +Z; Z = bump at center, Z near 0 at corners). Face normals point
   +Z (outward from the convex side). Earlier low-poly mirrors produced
   visible facet stripes through curved reflection; the dense analytical
   mesh provides a near-continuous normal field so `glossy_roughness = 0`
@@ -236,7 +243,7 @@ desired side mirror.
 | `track_to.target_object_name_pattern` | `{vehicle_prefix}_Mirror_{L\|R}` — the runtime mirror object name |
 | `track_to.track_axis`            | `NEG_Z`                                  |
 | `track_to.up_axis`               | `Y`                                      |
-| `lens.focal_length_mm`           | `200` (camera intrinsic — kept here)     |
+| `lens.focal_length_mm`           | `200` maximum; framing may shorten it     |
 | `lens.sensor_width_mm`           | `36.0`                                   |
 | `lens.clip_start_m`/`clip_end_m` | `0.10` / `500.0`                         |
 
@@ -303,7 +310,7 @@ that engine / sampling / GPU settings can be tuned project-wide.
 | `device.use_metalrt`            | `true`: enable MetalRT when Metal is selected |
 | `persistent_data`               | `true` (keep BVH/shaders between frames)   |
 | `clamp.{direct, indirect}`      | `0.0` / `0.0`                              |
-| `world.{type, color, strength}` | `sky_background` / `[0.55, 0.70, 0.95]` / `1.5` — applied only when the loaded scene has no World |
+| `world.{type, color, strength}` | `sky_background` / `[0.55, 0.70, 0.95]` / `1.5` — reapplied every render/preview |
 
 Apply (pseudocode):
 ```python
@@ -337,7 +344,7 @@ with higher samples and off denoiser for inspection) can live alongside
 
 | Camera yaml                     | Render profile               | Lens    | FOV (H)  | Output         | Purpose                              |
 | ------------------------------- | ---------------------------- | ------- | -------- | -------------- | ------------------------------------ |
-| `driver_camera_{L,R}.yaml`      | `render/default.yaml`        | 200 mm  | ≈ 10.3°  | 1920 × 1080    | close-up (mirror fills frame)        |
+| `driver_camera_{L,R}.yaml`      | `render/default.yaml`        | 200 mm  | ≈ 10.3°  | 1920 × 1080    | close-up with automatic complete framing        |
 | `driver_camera_wide_{L,R}.yaml` | `render/wide.yaml`           | 150 mm  | ≈ 13.7°  | 2560 × 1440    | wide (~30 % more context around mirror; same per-pixel angular resolution on mirror region as close-up) |
 
 ---
@@ -360,6 +367,10 @@ and applied at the final step.
 ---
 
 ## 6. End-to-end pseudocode
+
+The outline below illustrates the zero-pose, single-glass case. Current code
+also handles parent transforms, auxiliary glasses and automatic framing as
+described in [configuration.md](configuration.md).
 
 ```python
 veh_cfg     = load_yaml(f"configs/vehicles/{vehicle_name}.yaml")
@@ -409,9 +420,8 @@ scene.camera        = cam
 ego.visible_camera = cam_cfg.scene_setup.ego_ray_visibility.visible_camera
 for m in (mirror_L, mirror_R):
     for p in m.data.polygons: p.use_smooth = cam_cfg.scene_setup.mirror_shading.use_smooth
-if scene.world is None:
-    create_sky_world(cam_cfg.scene_setup.world.color,
-                     cam_cfg.scene_setup.world.strength)
+if render_cfg.world:
+    create_sky_world(render_cfg.world.color, render_cfg.world.strength)
 
 # 7) Render profile (from render_cfg — engine + sampling + GPU)
 apply_render_profile(scene, render_cfg)     # body listed under §4.7
@@ -431,3 +441,8 @@ apply_render_profile(scene, render_cfg)     # body listed under §4.7
   camera sees through the cabin while the body still appears in the mirror.
 - **World shader present** — adds the sky reflection that the mirror needs
   to look natural.
+
+`auxiliary` adds a lower glass; towing `installation.outboard_clearance_m`
+uses actual vehicle/caravan vertices. All glasses and the caravan follow the
+vehicle transform. `framing` includes both glasses and is checked again after
+Renderer applies the actual output aspect ratio. See [configuration.md](configuration.md).

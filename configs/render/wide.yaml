@@ -54,8 +54,7 @@ clamp:
   direct:   0.0
   indirect: 0.0
 
-# World / environment shader — applied only when the loaded scene .blend has
-# no World shader.
+# Authoritative environment, reapplied on every render and preview.
 world:
   type: sky_background
   color: [0.55, 0.70, 0.95]

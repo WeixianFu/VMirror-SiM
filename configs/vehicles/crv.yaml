@@ -1,4 +1,5 @@
 # Honda CR-V Similar — low-poly vehicle geometry config
+# Names are asset identifiers, not calibrated real-world vehicle models.
 # Backup of parameters already baked into assets/blender-vehicle/crv.blend.
 # All linear values in meters, angles in degrees.
 
@@ -36,7 +37,7 @@ bounds:
 # Forward direction the model is facing in its stored pose.
 facing: +Y
 
-# Trailer hitch ball — ground projection (world frame, meters).
+# Trailer hitch ball — ground projection (vehicle-local frame, meters).
 # Used as the alignment target for a caravan's coupler ground projection,
 # guaranteeing both vehicle and caravan rest on Z = 0 (no float / no sink).
 #
@@ -47,15 +48,11 @@ facing: +Y
 #   hitch_ball_height  =  0.420   (ISO 50 mm ball coupler, reference only)
 hitch_ground_projection: [0.0, -3.860, 0.0]
 
-# Mirror mount points (world frame, meters).
+# Mirror mount points (vehicle-local frame, meters).
 # Left picked from the model in Blender; right mirrored across X=0.
 mirror_mount:
   left:  [-0.80318, -0.6788, 1.3188]
   right: [ 0.80318, -0.6788, 1.3188]
 
-# Driver eye point (P50 reference, LHD).
-# X = -0.35 → 350 mm left of centerline; Y = -0.10 → 100 mm behind front axle.
+# Model-relative driver eye reference (LHD); no measured P50 claim.
 eye_point: [-0.35, -1.15, 1.20]
-# Note: Y shifted from doc's placeholder -0.10 (which sits above the front
-# axle / engine bay) to -1.15, a realistic SUV driver H-point location
-# ~1.15 m behind the front axle.
