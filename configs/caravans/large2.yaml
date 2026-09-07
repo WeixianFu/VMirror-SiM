@@ -4,6 +4,7 @@
 
 model: large2_caravan
 source_blend: assets/blender-caravan/large2_caravan.blend
+source_object: node_0.001  # node_0 is the separate large model
 
 # Local-coordinate convention:
 #   origin = ball coupler ground projection  (Z = 0)

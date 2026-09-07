@@ -57,3 +57,8 @@ scene_setup:
   mirror_shading:
     use_smooth: true
   # (world spec lives in the render profile; camera no longer carries it.)
+
+# Reduce the requested lens as needed; keep every glass vertex inside the frame.
+framing:
+  enabled: true
+  margin: 0.05  # fraction of image width/height on each edge

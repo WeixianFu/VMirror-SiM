@@ -56,4 +56,9 @@ reference_vehicles:
   right_rear_far:    { x: +3.75, y: -40.0 }
 
 # Ambient lighting.
-sun_light: { location: [0.0, 0.0, 10.0], rotation_deg: [45.0, 0.0, -30.0] }
+sun_light:
+  object: Sun_Light
+  location: [0.0, 0.0, 10.0]
+  rotation_deg: [45.0, 0.0, -30.0]
+  energy: 5.0
+  color: [1.0, 1.0, 1.0]

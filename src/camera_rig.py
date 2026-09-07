@@ -30,6 +30,7 @@ from typing import Any
 from ._common import (
     BPY_COMMON_PRELUDE,
     CONFIG_DIR,
+    PROJECT_ROOT,
     _project_mkdtemp,
     abs_blend,
     find_blender,
@@ -135,6 +136,8 @@ class CameraRig:
                     "source_object": cam["source_object"],
                     "lens_mm":       cam["lens"]["focal_length_mm"],
                     "sensor_width":  cam["lens"]["sensor_width_mm"],
+                    "sensor_fit": cam["lens"].get("sensor_fit", "HORIZONTAL"),
+                    "framing": cam.get("framing", {}),
                     "clip_start":    cam["lens"]["clip_start_m"],
                     "clip_end":      cam["lens"]["clip_end_m"],
                     "track_axis":    cam["track_to"]["track_axis"],
@@ -151,6 +154,7 @@ class CameraRig:
             "vehicle_name": v["model"],
             "eye_point":    list(v["eye_point"]),
             "sides":        sides_payload,
+            "output": load_yaml_abs(str(PROJECT_ROOT / (self.render_profile_from_camera or "configs/render/default.yaml")))["output"],
         }
 
     def build(
@@ -197,6 +201,8 @@ def _build():
     _open_blend(payload["input_blend"])
 
     scn = bpy.context.scene
+    for key in ("resolution_x", "resolution_y", "resolution_percentage"):
+        setattr(scn.render, key, payload["output"][key])
     prefix = scn.get("vmirror_vehicle") or payload["vehicle_name"]
     ego_name = prefix + "_ego"
     ego = bpy.data.objects.get(ego_name)
@@ -223,9 +229,11 @@ def _build():
         cam = _append_single(cs["blend"], cs["source_object"], new_name=new_cam_name)
         cam.data.lens = cs["lens_mm"]
         cam.data.sensor_width = cs["sensor_width"]
+        cam.data.sensor_fit = cs["sensor_fit"]
         cam.data.clip_start = cs["clip_start"]
         cam.data.clip_end = cs["clip_end"]
         cam.parent = ego
+        cam.matrix_parent_inverse = Matrix.Identity(4)
         cam.location = Vector(payload["eye_point"])
         cam.rotation_euler = (0.0, 0.0, 0.0)
         for c in list(cam.constraints):
@@ -235,7 +243,15 @@ def _build():
         con.track_axis = _TRACK_AXIS_MAP[cs["track_axis"]]
         con.up_axis    = _UP_AXIS_MAP[cs["up_axis"]]
 
-        report["cameras"][side] = {"object": cam.name, "tracks": mirror.name}
+        cam["vmirror_framing"] = json.dumps(cs["framing"])
+        cam["vmirror_requested_lens"] = cs["lens_mm"]
+        cam["vmirror_frame_objects"] = json.dumps([
+            o.name for o in scn.objects if o.name == mirror_name or
+            o.name.startswith(mirror_name + "_")
+        ])
+
+        report["cameras"][side] = {"object": cam.name, "tracks": mirror.name,
+                                    "framing": _fit_mirror_camera(cam)}
 
         # Apply scene_setup from the FIRST side only (ego ray visibility is
         # not side-specific; mirror smooth shading is identical across sides).

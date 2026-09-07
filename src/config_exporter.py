@@ -133,13 +133,15 @@ class ConfigExporter:
                     candidate = PROJECT_ROOT / cy
                 out["camera"] = candidate
         # Mirrors: mirror_L_source / mirror_R_source are "name:<cls>" or "path:<abs>"
-        for side in ("L", "R"):
+        for side in ("L", "R", "L_Aux", "R_Aux"):
             src = meta.get(f"mirror_{side}_source", "")
+            if side.endswith("_Aux") and not src:
+                continue
             if src.startswith("path:"):
                 out[f"mirror_{side}"] = Path(src[5:])
             elif src.startswith("name:"):
                 cls = src[5:]
-                out[f"mirror_{side}"] = CONFIG_DIR / "mirrors" / f"{cls}_{side}.yaml"
+                out[f"mirror_{side}"] = CONFIG_DIR / "mirrors" / f"{cls}_{side[0]}.yaml"
             else:
                 # Fall back to the uniform mirror name
                 cls = meta.get("mirror", "standard_convex")
@@ -198,23 +200,28 @@ class ConfigExporter:
         sub = out_dir / "mirrors"
         sub.mkdir(exist_ok=True)
         out: list[str] = []
-        # Vehicle mount points (world frame, from baseline vehicle yaml)
+        # Vehicle mount points in the vehicle frame, from baseline YAML
         veh_base = load_yaml_abs(str(baselines["vehicle"]))
         mounts = {
             "L": veh_base["mirror_mount"]["left"],
             "R": veh_base["mirror_mount"]["right"],
         }
-        for side in ("L", "R"):
+        for side in probe["mirrors"]:
             m = probe["mirrors"][side]
             base = load_yaml_abs(str(baselines[f"mirror_{side}"]))
-            glass_world = m["location"]
-            mount = mounts[side]
-            new_offset = [round(glass_world[i] - mount[i], 6) for i in range(3)]
+            glass_local = m["local_location"]
+            mount = mounts[side[0]]
+            new_offset = [round(glass_local[i] - mount[i], 6) for i in range(3)]
             base["glass_center_offset"]["vector"] = new_offset
             # Keep scalar mirrors of the vector so yaml stays self-consistent
             base["glass_center_offset"]["lateral"] = abs(new_offset[0])
             base["glass_center_offset"]["forward"] = new_offset[1]
             base["glass_center_offset"]["rise"]    = new_offset[2]
+            aux_key = f"mirror_{side}_Aux"
+            if aux_key in baselines:
+                base["auxiliary"] = {"path": str(sub / baselines[aux_key].name)}
+            else:
+                base.pop("auxiliary", None)
 
             if mirror_mode == "explicit":
                 base.setdefault("orientation", {})
@@ -300,14 +307,15 @@ def _build():
             break
 
     # Mirrors L + R
-    for s in ("L", "R"):
+    for s in ("L", "R", "L_Aux", "R_Aux"):
         obj = bpy.data.objects.get(mirror_name(s))
         if obj is None:
             continue
         report["mirrors"][s] = {
             "object":         obj.name,
             "location":       list(obj.matrix_world.translation),
-            "rotation_euler": list(obj.rotation_euler),
+            "local_location": list(ego.matrix_world.inverted() @ obj.matrix_world.translation),
+            "rotation_euler": list((ego.matrix_world.inverted() @ obj.matrix_world).to_euler()),
         }
 
     # Camera (parented to ego → local_position == vehicle.eye_point)

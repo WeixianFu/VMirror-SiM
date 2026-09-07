@@ -53,6 +53,7 @@ def _mirror_payload_entry(cfg: dict) -> dict:
         "source_object":       cfg["source_object"],
         "glass_center_offset": list(cfg["glass_center_offset"]["vector"]),
         "orientation_policy":  policy,
+        "installation": cfg.get("installation", {}),
     }
     if policy == "explicit":
         try:
@@ -62,6 +63,22 @@ def _mirror_payload_entry(cfg: dict) -> dict:
                 f"mirror yaml has orientation.policy=explicit but no "
                 f"rotation_euler_deg: {cfg.get('model', cfg)}"
             ) from exc
+    return entry
+
+
+def _mirror_assembly(cfg: dict, side: str) -> dict:
+    entry = _mirror_payload_entry(cfg)
+    auxiliary = cfg.get("auxiliary")
+    if auxiliary:
+        if "path" in auxiliary:
+            aux = load_yaml_abs(auxiliary["path"])
+            source = "path:" + str(Path(auxiliary["path"]).resolve())
+        else:
+            name = auxiliary["mirror"]
+            aux = load_yaml(f"mirrors/{name}_{side}.yaml")
+            source = "name:" + name
+        entry["auxiliary"] = _mirror_payload_entry(aux)
+        entry["auxiliary_source"] = source
     return entry
 
 
@@ -135,6 +152,7 @@ class SceneBuilder:
             "output_blend":  output_blend,
             "clear_scene":   self.clear_scene,
             "scene_blend":   abs_blend(self.scene_cfg["source_blend"]),
+            "sun_light": self.scene_cfg.get("sun_light"),
             "vehicle": {
                 "name":  v["model"],
                 "blend": abs_blend(v["source_blend"]),
@@ -151,11 +169,12 @@ class SceneBuilder:
                 None if self.caravan_cfg is None else {
                     "name":  self.caravan_cfg["model"],
                     "blend": abs_blend(self.caravan_cfg["source_blend"]),
+                    "source_object": self.caravan_cfg.get("source_object", "node_0"),
                 }
             ),
             "mirrors": {
-                "L": _mirror_payload_entry(mL),
-                "R": _mirror_payload_entry(mR),
+                "L": _mirror_assembly(mL, "L"),
+                "R": _mirror_assembly(mR, "R"),
             },
             "mirror_target": list(self.mirror_target),
             "metadata": {
@@ -222,6 +241,22 @@ def _build():
 
     # 1) Scene
     report["scene"] = _append_scene(payload["scene_blend"])
+    sun_spec = payload.get("sun_light")
+    if sun_spec:
+        sun = bpy.data.objects.get(sun_spec.get("object", "Sun_Light"))
+        if sun is None or sun.type != 'LIGHT' or sun.data.type != 'SUN':
+            raise RuntimeError("Configured Sun light not found")
+        if "location" in sun_spec:
+            sun.location = sun_spec["location"]
+        if "rotation_deg" in sun_spec:
+            sun.rotation_euler = tuple(math.radians(a) for a in sun_spec["rotation_deg"])
+        if "energy" in sun_spec:
+            sun.data.energy = sun_spec["energy"]
+        if "color" in sun_spec:
+            sun.data.color = sun_spec["color"]
+        report["scene"]["sun_light"] = {"energy": sun.data.energy,
+            "location": list(sun.location),
+            "rotation_deg": [math.degrees(a) for a in sun.rotation_euler]}
 
     # 2) Vehicle
     v = payload["vehicle"]
@@ -229,44 +264,88 @@ def _build():
     ego = _append_single(v["blend"], "node_0", new_name=prefix + "_ego")
     ego.location = Vector(v["origin_position"])
     ego.rotation_euler = tuple(math.radians(a) for a in v["origin_rotation_deg"])
+    bpy.context.view_layer.update()
     report["vehicle"] = {"object": ego.name, "location": list(ego.location)}
 
     # 3) Caravan (optional)
+    caravan = None
     if payload.get("caravan"):
         c = payload["caravan"]
-        caravan = _append_single(c["blend"], "node_0",
+        caravan = _append_single(c["blend"], c["source_object"],
                                  new_name="Caravan_" + c["name"])
+        caravan.parent = ego
+        caravan.matrix_parent_inverse = Matrix.Identity(4)
         caravan.location = Vector(v["hitch_ground_projection"])
         caravan.rotation_euler = (0.0, 0.0, 0.0)
-        report["caravan"] = {"object": caravan.name,
-                             "location": list(caravan.location)}
+        bpy.context.view_layer.update()
+        report["caravan"] = {"object": caravan.name, "source_object": c["source_object"],
+                             "location": list(caravan.matrix_world.translation),
+                             "dimensions": list(caravan.dimensions)}
 
     # 4) Mirrors L+R
     target = payload["mirror_target"]
-    eye_world = v["eye_point"]
+    eye_world = ego.matrix_world @ Vector(v["eye_point"])
     for side in ("L", "R"):
         m = payload["mirrors"][side]
         mount = v["mirror_mount"]["left" if side == "L" else "right"]
-        offset = m["glass_center_offset"]
-        glass_world = [mount[i] + offset[i] for i in range(3)]
-        obj = _append_single(m["blend"], m["source_object"],
-                             new_name=prefix + "_Mirror_" + side)
-        obj.location = Vector(glass_world)
-        policy = m.get("orientation_policy", "dynamic_reflection")
-        if policy == "explicit":
-            deg = m["rotation_euler_deg"]
-            obj.rotation_euler = tuple(math.radians(a) for a in deg)
-        else:
-            obj.rotation_euler = _mirror_rotation_euler(glass_world, eye_world, target)
-        for p in obj.data.polygons:
-            p.use_smooth = True
-        obj.data.update()
-        report["mirrors"][side] = {
-            "object": obj.name,
-            "location": list(obj.location),
-            "rotation_deg": [math.degrees(a) for a in obj.rotation_euler],
-            "orientation_policy": policy,
-        }
+        sign = -1 if side == "L" else 1
+        assembly = [(side, m)]
+        if m.get("auxiliary"):
+            assembly.append((side + "_Aux", m["auxiliary"]))
+        pieces = []
+        for key, spec in assembly:
+            obj = _append_single(spec["blend"], spec["source_object"],
+                                 new_name=prefix + "_Mirror_" + key)
+            obj.parent = ego
+            obj.matrix_parent_inverse = Matrix.Identity(4)
+            obj.location = Vector(mount) + Vector(spec["glass_center_offset"])
+            obj["vmirror_side"] = side
+            pieces.append((key, obj, spec))
+
+        def orient():
+            for key, obj, spec in pieces:
+                if spec["orientation_policy"] == "explicit":
+                    # Explicit angles are in the vehicle frame, like offsets.
+                    obj.rotation_euler = tuple(math.radians(a) for a in spec["rotation_euler_deg"])
+                else:
+                    g = ego.matrix_world @ obj.location
+                    world_rot = _mirror_rotation_euler(g, eye_world, target).to_matrix()
+                    obj.rotation_euler = (ego.matrix_world.to_3x3().inverted() @ world_rot).to_euler()
+            bpy.context.view_layer.update()
+
+        orient()
+        install = m.get("installation", {})
+        clearance = install.get("outboard_clearance_m")
+        if clearance is not None and m["orientation_policy"] != "explicit":
+            # Use actual imported geometry, measured in the vehicle frame.
+            envelope = max(sign * vtx.co.x for vtx in ego.data.vertices)
+            if caravan is not None:
+                envelope = max(envelope, max(sign * (caravan.matrix_local @ vtx.co).x
+                                             for vtx in caravan.data.vertices))
+            for _ in range(8):
+                inner = min(sign * (obj.matrix_local @ vtx.co).x
+                            for _, obj, _ in pieces for vtx in obj.data.vertices)
+                shift = envelope + float(clearance) - inner
+                if shift <= 1e-6:
+                    break
+                for _, obj, _ in pieces:
+                    obj.location.x += sign * (shift + 1e-5)
+                orient()
+            else:
+                raise RuntimeError("Mirror outboard clearance did not converge")
+
+        for key, obj, spec in pieces:
+            for p in obj.data.polygons:
+                p.use_smooth = True
+            obj.data.update()
+            report["mirrors"][key] = {
+                "object": obj.name, "location": list(obj.matrix_world.translation),
+                "local_location": list(obj.location),
+                "rotation_deg": [math.degrees(a) for a in obj.rotation_euler],
+                "orientation_policy": spec["orientation_policy"],
+            }
+        if m.get("auxiliary_source"):
+            bpy.context.scene["vmirror_mirror_" + side + "_Aux_source"] = m["auxiliary_source"]
 
     # Metadata — next stages read this so user does not have to re-pass names
     meta = payload["metadata"]

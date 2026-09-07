@@ -5,22 +5,16 @@ model: standard_convex_L
 source_blend: assets/blender-mirror/standard_convex_L.blend
 source_object: Mirror_Glass_StandardConvex_L
 
-# Local-coordinate convention for this mirror:
-#   origin = mount point (arm attachment to vehicle A-pillar / sail triangle)
-#   +X = outward (for the LEFT mirror, outward is world -X)
-#   +Y = forward (drive direction, matches vehicle +Y)
-#   +Z = up
-#
-# The mirror has NO global coordinates — always expressed relative to
-# vehicle.mirror_mount.left. Final world pose:
-#     world_pos = vehicle.mirror_mount.left + glass_center_offset.vector
-# Rotation is not baked: computed dynamically from eye + target per scene.
+# Placement offsets use VEHICLE axes (+X right, +Y forward, +Z up).
+# Glass mesh origin is its nominal center; mesh X/Y span width/height,
+# and mesh +Z is the convex normal. The object is parented to the vehicle.
+# Vehicle-local position = mirror_mount + glass_center_offset.vector.
 coordinate_system: mount_relative
 
 # Glass dimensions and analytical convex sphere geometry.
 # The mesh is a dense rectangular grid whose Z follows an analytical sphere:
 #   z(r) = bump - (R - sqrt(R^2 - r^2)),  with r = sqrt(x^2 + y^2)
-# The dome bulges toward local +Z (center at Z = bump, rim at Z = 0); face
+# The dome bulges toward local +Z (center at Z = bump, corners near Z = 0); face
 # normals point +Z (outward from the convex reflective side).
 # The high density gives a smooth normal field so roughness 0 renders cleanly.
 glass_size:
@@ -59,7 +53,7 @@ orientation:
   # Reference rotation at the default pose — computed via the reflection
   # law with vehicle=passat, target=(0, -20, 0.5). Used when policy=explicit;
   # run ConfigExporter to bake values for a different vehicle.
-  rotation_euler_deg: [89.831167, 0.0, 26.034641]
+  rotation_euler_deg: [89.831161, 0.0, 26.034641]
 
 # Placement procedure — do NOT shift the mesh; shifting couples the offset
 # to the rotation and lands the glass somewhere unintended:

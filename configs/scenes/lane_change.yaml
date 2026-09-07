@@ -84,4 +84,9 @@ approaching_vehicles:
     - { name: Approaching_right_50m,  x: +3.75, y: -50.0 }
     - { name: Approaching_right_70m,  x: +3.75, y: -70.0 }
 
-sun_light: { location: [0.0, 0.0, 10.0], rotation_deg: [45.0, 0.0, -30.0] }
+sun_light:
+  object: Sun_Light
+  location: [0.0, 0.0, 10.0]
+  rotation_deg: [45.0, 0.0, -30.0]
+  energy: 5.0
+  color: [1.0, 1.0, 1.0]

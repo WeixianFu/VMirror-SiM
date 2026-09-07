@@ -1,5 +1,8 @@
 # SimulationPipeline — Usage Guide
 
+See [configuration semantics](configuration.md) for model-relative dimensions,
+mirror assemblies, automatic full framing, and authoritative YAML lighting.
+
 End-to-end workflow for building, previewing, rendering, and tuning a
 VMirror-SiM scene from a Jupyter notebook or plain Python.
 
@@ -174,9 +177,8 @@ the camera yaml's `render_profile:` field — pairing `camera="wide"` with
 `configs/render/wide.yaml` (2560 × 1440) without extra config.
 
 The world/environment shader now lives in the render yaml (`world:` block).
-It is only applied when the loaded blend has no world shader — scene blends
-typically ship with their own, in which case the render-yaml world is a
-documented default that is not touched.
+When present, it is applied on every render and preview, replacing the input
+World. SceneBuilder also applies the scene YAML `sun_light` block.
 
 ```python
 from src import Renderer
@@ -297,7 +299,7 @@ What gets re-computed vs pass-through:
 | ------------ | ------------------------------------------------------------------------- |
 | `vehicles/`  | `origin.position` / `origin.rotation`, `eye_point` (from camera local)    |
 | `caravans/`  | `ray_visibility` (six Cycles flags), `applied_world_location` (doc-only)  |
-| `mirrors/`   | `glass_center_offset.vector` (mirror_world − mount), `orientation.policy="explicit"`, `orientation.rotation_euler_deg` |
+| `mirrors/`   | `glass_center_offset.vector` (mirror_vehicle_local − mount), `orientation.policy="explicit"`, `orientation.rotation_euler_deg` |
 | `cameras/`   | `lens.{focal_length_mm, sensor_width_mm, clip_start_m, clip_end_m}`       |
 
 All other fields are copied verbatim from the baseline yaml (identified via
@@ -362,7 +364,7 @@ SimulationPipeline(
     ...,
     mirror_L="standard", mirror_R="towing_wide_angle",    # heterogeneous mirrors
     mirror_path_L=None,  mirror_path_R=None,              # or explicit yaml paths
-    camera="wide",                                        # 150 mm variant → auto
+    camera="wide",                                        # up to 150 mm variant → auto
     render_profile=None,                                  #   render/wide.yaml
     camera_path=None,                                     # or absolute camera yaml
 ).run()
@@ -418,7 +420,7 @@ output/render-results/passat_standard_R_0423_1522.png
 | `caravan`         | `compact`, `middle`, `large`, `large2`, or `None`                               |
 | `mirror`          | `standard` (= `standard_convex`), `towing` (= `towing_main`), `electric` (= `electric_main`), `electric_sub`, `towing_wide_angle`, `clip_on_blind_spot` |
 | `side` / `camera_side` | `L`, `R`, or `both` (CameraRig; `SimulationPipeline` takes `camera_side`)    |
-| `camera` (variant)| unset (default 200 mm), `wide` (150 mm, auto-pairs with `render/wide.yaml`)     |
+| `camera` (variant)| unset (up to 200 mm, automatic full framing), `wide` (150 mm, auto-pairs with `render/wide.yaml`)     |
 | `render_profile`  | `configs/render/default.yaml`, `configs/render/wide.yaml`                       |
 
 All configs are under `configs/{scenes,vehicles,caravans,mirrors,cameras,render}/`.
@@ -531,3 +533,7 @@ python scripts/check_platform.py --backend CPU
 `--preview` confirms startup; inspect the actual three panes and close the
 window manually. Reports/images are under `output/platform-check/`, and blends
 under `tmp/platform_check_*`. Missing model assets or render errors exit nonzero.
+
+The notebook takes its initial selections from the Python API defaults.
+Run `python scripts/check_geometry.py` for actual-model assembly/framing checks;
+see [configuration semantics](configuration.md) for parameters and limitations.

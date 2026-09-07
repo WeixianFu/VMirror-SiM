@@ -180,6 +180,42 @@ import bpy
 from mathutils import Vector, Matrix
 
 
+def _fit_mirror_camera(cam):
+    """Fit all side-mirror vertices at the current output aspect ratio."""
+    from bpy_extras.object_utils import world_to_camera_view
+    spec = json.loads(cam.get("vmirror_framing", "{}"))
+    if not spec.get("enabled", False):
+        return None
+    margin = float(spec.get("margin", 0.05))
+    if not 0 <= margin < 0.5:
+        raise ValueError("camera framing.margin must be in [0, 0.5)")
+    scn = bpy.context.scene
+    names = json.loads(cam["vmirror_frame_objects"])
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    points = []
+    for name in names:
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            raise RuntimeError("Framing object missing: " + name)
+        evaluated = obj.evaluated_get(dg)
+        points.extend(evaluated.matrix_world @ v.co for v in evaluated.data.vertices)
+    cam.data.lens = float(cam["vmirror_requested_lens"])
+    cam.data.shift_x = cam.data.shift_y = 0.0
+    uv = [world_to_camera_view(scn, cam, p) for p in points]
+    if not uv or min(p.z for p in uv) <= cam.data.clip_start or max(p.z for p in uv) >= cam.data.clip_end:
+        raise RuntimeError("Mirror outside camera clipping range")
+    extent = max(max(abs(p.x - 0.5), abs(p.y - 0.5)) for p in uv)
+    if extent > 0.5 - margin:
+        cam.data.lens *= (0.5 - margin) / extent * 0.999
+    uv = [world_to_camera_view(scn, cam, p) for p in points]
+    bounds = [[min(p[i] for p in uv), max(p[i] for p in uv)] for i in range(2)]
+    if any(lo < margin - 1e-5 or hi > 1 - margin + 1e-5 for lo, hi in bounds):
+        raise RuntimeError("Mirror does not fit camera frame")
+    return {"lens_mm": cam.data.lens, "uv_bounds": bounds, "margin": margin,
+            "objects": names}
+
+
 def _append_single(blend_path, obj_name, new_name):
     with bpy.data.libraries.load(blend_path, link=False) as (data_from, data_to):
         if obj_name not in data_from.objects:

@@ -53,4 +53,9 @@ test_poles:
     - { name: R46_P4_Pass_NearOuter_4m,   side: passenger, pos: near_outer, y: -4.0  }
     - { name: R46_P5_Pass_FarMid_40m,     side: passenger, pos: far_mid,    y: -40.0 }
 
-sun_light: { location: [0.0, 0.0, 10.0] }
+sun_light:
+  object: Sun_Light
+  location: [0.0, 0.0, 10.0]
+  rotation_deg: [45.0, 0.0, -30.0]
+  energy: 5.0
+  color: [1.0, 1.0, 1.0]

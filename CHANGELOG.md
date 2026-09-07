@@ -9,6 +9,23 @@ are ISO-8601 (local). "Unreleased" collects work not yet tagged.
 
 ## [Unreleased]
 
+### Fixed — model configuration and complete mirror framing
+
+- Notebook defaults now come from the Python API; model dimensions remain the
+  source of truth, with no real-vehicle rescaling or unsupported P50 claim.
+- Select `node_0.001` for large2 rather than the duplicate large mesh.
+- Towing mirrors start at 0.65 m extension and fit the actual vehicle/trailer
+  side envelope with 50 mm clearance. Towing/electric assemblies include lower
+  auxiliary glasses with separated vertical positions; glass geometry is unchanged.
+- Camera framing fits all side-glass vertices with 5% image margins, including
+  when the render aspect changes. Report actual lenses and image bounds.
+- Apply YAML World on every render/preview and scene YAML Sun during assembly.
+- Parent caravan/mirrors to the vehicle; use transformed eyes for reflection
+  orientation and vehicle-local coordinates for main/auxiliary mirror export.
+- Add `scripts/check_geometry.py` for actual-asset bilateral renders, clearance,
+  environment, nonzero pose and export/reload checks. See `docs/configuration.md`.
+
+
 ### Added
 
 **macOS / Linux development**
