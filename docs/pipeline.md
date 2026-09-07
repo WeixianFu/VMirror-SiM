@@ -3,6 +3,9 @@
 End-to-end workflow for building, previewing, rendering, and tuning a
 VMirror-SiM scene from a Jupyter notebook or plain Python.
 
+For the everyday Python API workflow on macOS and Linux, see
+[Python API 日常使用](python_api.md). Notebook use is optional.
+
 Classes (each in its own `src/*.py`):
 - `SceneBuilder` — steps 1–4 (scene + vehicle + caravan + mirrors)
 - `CameraRig` — step 5 + ego ray-visibility

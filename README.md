@@ -31,9 +31,12 @@ See [docs/pipeline.md](docs/pipeline.md) for the full guide and
 
 ## macOS + Linux
 
-Use the same environment, configs and `notebooks/vmirror_explorer.ipynb` on
-both computers. Start `jupyter lab` from the project root after activating
-`vmirror-sim`. Blender must be installed separately on each machine.
+日常使用直接调用 **Python API**，macOS 和 Linux 共用相同代码与配置。
+Notebook 是可选的交互入口，不是运行依赖。两台电脑分别安装相同版本的 Blender，
+激活 `vmirror-sim` 环境后，从项目根目录运行 Python 脚本。
+
+完整示例见 [Python API 日常使用](docs/python_api.md)：构建场景、打开左右镜预览、
+保存调整，再渲染两侧图片。需要 Notebook 时再运行 `jupyter lab`。
 
 The default and wide profiles automatically select Metal on a Mac and
 OptiX on an NVIDIA Linux desktop (CUDA is the next choice). If no GPU can
