@@ -4,7 +4,7 @@ Scope
 -----
 6c. World   — build a sky_background world if the loaded blend has none, using
               ``world:`` from the render yaml (moved here from the camera yaml).
-7.  Profile — engine / resolution / cycles sampling / Apple-Silicon Metal / etc.
+7.  Profile — engine / resolution / cycles sampling / automatic local GPU / etc.
 7b. Render  — ``bpy.ops.render.render(write_still=True)`` when ``output`` is set.
 
 Reads an input ``.blend`` (CameraRig's output); does not modify geometry or
@@ -22,6 +22,7 @@ Notebook usage
 
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,8 @@ from ._common import (
     load_yaml_abs,
     run_blender_script,
 )
+
+from ._render_device import configure_cycles_device
 
 DEFAULT_RENDER_PROFILE = "configs/render/default.yaml"
 
@@ -94,6 +97,7 @@ class Renderer:
         )
         script = (
             BPY_COMMON_PRELUDE
+            + inspect.getsource(configure_cycles_device)
             + _RENDERER_BODY.replace("__PAYLOAD_JSON__", payload_json)
         )
         return run_blender_script(
@@ -151,6 +155,7 @@ class Renderer:
         payload_json = json.dumps(payload)
         script = (
             BPY_COMMON_PRELUDE
+            + inspect.getsource(configure_cycles_device)
             + _RENDERER_BODY.replace("__PAYLOAD_JSON__", payload_json)
         )
         return run_blender_script(
@@ -183,30 +188,8 @@ def _ensure_sky_world(spec):
 def _apply_profile(rp):
     scn = bpy.context.scene
 
-    # Apple-Silicon GPU setup
-    asil = rp.get("apple_silicon", {})
-    metal_devices = []
-    asil_error = None
-    if asil.get("enabled", False):
-        try:
-            prefs = bpy.context.preferences.addons["cycles"].preferences
-            prefs.compute_device_type = asil["compute_device_type"]
-            if hasattr(prefs, "get_devices"):
-                prefs.get_devices()
-            for d in prefs.devices:
-                d.use = (d.type == asil["compute_device_type"])
-            if hasattr(prefs, "use_metalrt"):
-                prefs.use_metalrt = asil.get("use_metalrt", False)
-            scn.cycles.device = asil.get("cycles_device", "GPU")
-            if hasattr(scn.cycles, "denoising_use_gpu"):
-                scn.cycles.denoising_use_gpu = rp["cycles"].get(
-                    "denoising_use_gpu", True
-                )
-            metal_devices = [d.name for d in prefs.devices if d.use]
-        except Exception as e:
-            asil_error = str(e)
-
     scn.render.engine = rp["engine"]
+    device_report = configure_cycles_device(bpy, rp)
     out = rp["output"]
     scn.render.resolution_x = out["resolution_x"]
     scn.render.resolution_y = out["resolution_y"]
@@ -231,13 +214,15 @@ def _apply_profile(rp):
         cy.adaptive_min_samples = adapt["min_samples"]
     cy.use_denoising = rc["use_denoising"]
     cy.denoiser = rc["denoiser"]
+    cy.use_preview_denoising = rc["use_denoising"]
+    cy.preview_denoiser = rc["denoiser"]
     cy.pixel_filter_type = rc["pixel_filter_type"]
     cy.filter_width = rc["filter_width"]
     clamp = rp.get("clamp", {})
     cy.sample_clamp_direct   = clamp.get("direct", 0.0)
     cy.sample_clamp_indirect = clamp.get("indirect", 0.0)
 
-    return {"metal_devices": metal_devices, "apple_silicon_error": asil_error}
+    return device_report
 
 
 def _configure_space(space, perspective, shading):

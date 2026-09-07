@@ -295,14 +295,12 @@ that engine / sampling / GPU settings can be tuned project-wide.
 | `cycles.adaptive_sampling.{enabled, threshold, min_samples}` | `true` / `0.01` / `0` |
 | `cycles.use_denoising`          | `true`                                     |
 | `cycles.denoiser`               | `OPENIMAGEDENOISE`                         |
-| `cycles.denoising_use_gpu`      | `true` (OIDN 2.0+ on Metal; Blender 4.1+)  |
+| `cycles.denoising_use_gpu`      | `false`: CPU OIDN for final and preview on both platforms |
 | `cycles.pixel_filter_type`      | `BLACKMAN_HARRIS`                          |
 | `cycles.filter_width`           | `1.5`                                      |
-| `apple_silicon.enabled`         | `true` — turn the Metal/RT block on/off    |
-| `apple_silicon.compute_device_type` | `METAL`                                |
-| `apple_silicon.use_metalrt`     | `true` — M3-series hardware ray tracing (M1/M2 ignore) |
-| `apple_silicon.cycles_device`   | `GPU`                                      |
-| `apple_silicon.select_all_metal_devices` | `true`                            |
+| `device.backend`               | `AUTO`: Metal on macOS; OptiX → CUDA → HIP → oneAPI on Linux |
+| `device.fallback_to_cpu`        | `true`: explicitly select CPU if GPU discovery fails |
+| `device.use_metalrt`            | `true`: enable MetalRT when Metal is selected |
 | `persistent_data`               | `true` (keep BVH/shaders between frames)   |
 | `clamp.{direct, indirect}`      | `0.0` / `0.0`                              |
 | `world.{type, color, strength}` | `sky_background` / `[0.55, 0.70, 0.95]` / `1.5` — applied only when the loaded scene has no World |
@@ -310,16 +308,9 @@ that engine / sampling / GPU settings can be tuned project-wide.
 Apply (pseudocode):
 ```python
 rp = load_yaml(camera_yaml.render_profile)
-prefs = bpy.context.preferences.addons['cycles'].preferences
-if rp.apple_silicon.enabled:
-    prefs.compute_device_type = rp.apple_silicon.compute_device_type
-    for d in prefs.devices:
-        d.use = (d.type == rp.apple_silicon.compute_device_type)
-    prefs.use_metalrt = rp.apple_silicon.use_metalrt
-    scene.cycles.device = rp.apple_silicon.cycles_device
-    scene.cycles.denoising_use_gpu = rp.cycles.denoising_use_gpu
-
-scene.render.engine                = rp.engine
+scene.render.engine = rp.engine
+# Actual implementation: src/_render_device.py, injected into Blender.
+configure_cycles_device(bpy, rp)
 scene.render.resolution_x          = rp.output.resolution_x
 scene.render.resolution_y          = rp.output.resolution_y
 scene.render.resolution_percentage = rp.output.resolution_percentage
@@ -360,7 +351,7 @@ with higher samples and off denoiser for inspection) can live alongside
 | Caravan        | `caravans/<name>.source_blend`  +  vehicle.`hitch_ground_projection`     |
 | Mirrors        | `mirrors/<name>_<side>.{source_blend, source_object, glass_center_offset.vector}`  +  vehicle.`{mirror_mount.<side>, eye_point}`  +  scene-defined `target` |
 | Camera         | `cameras/driver_camera_<side>.{source_blend, source_object, placement, track_to, lens, scene_setup, render_profile}`  +  vehicle.`eye_point`  +  the mirror object placed in the previous step |
-| Render profile | `render/<profile>.{engine, output, cycles, apple_silicon, persistent_data, clamp}`  (path from camera.`render_profile`) |
+| Render profile | `render/<profile>.{engine, output, cycles, device, persistent_data, clamp}`  (path from camera.`render_profile`) |
 
 Vehicle yaml fields are read **once** and re-used across mirrors and camera —
 keep one in-memory dict per vehicle. The render profile is also loaded once

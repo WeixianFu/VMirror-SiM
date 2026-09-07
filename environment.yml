@@ -2,7 +2,8 @@
 # Single source of truth — every Python dep this project needs is listed here.
 #
 # Blender itself is NOT installed via conda — grab it from blender.org or
-# `brew install --cask blender`. This file only covers the Python side
+# use the official Linux archive or macOS app. Use the same Blender version
+# on both computers. This file only covers the Python side
 # that drives Blender via subprocess.
 #
 # Usage:

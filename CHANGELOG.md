@@ -11,6 +11,19 @@ are ISO-8601 (local). "Unreleased" collects work not yet tagged.
 
 ### Added
 
+**macOS / Linux development**
+- Shared AUTO device selection for rendering and GUI previews: Metal on macOS,
+  OptiX → CUDA → HIP → oneAPI on Linux, explicit CPU fallback on discovery failure.
+- Device reports, strict GPU mode, CPU override, modern MetalRT support and
+  backward-compatible legacy `apple_silicon` profiles.
+- `VMIRROR_BLENDER_EXE` for machine-local Blender paths; early Linux desktop
+  checks and GUI process-exit diagnostics.
+- Hardware-independent device/launch regression tests, `scripts/check_platform.py`
+  for real left/right renders and optional preview, and dual-platform setup guide.
+- Default/wide profiles use a shared `device` block and CPU OIDN for consistent
+  final/preview denoising settings; notebook displays the selected device.
+
+
 **Pipeline — subprocess-based 7-step loader**
 - `src/scene_builder.py` — `SceneBuilder` class (steps 1–4: scene / vehicle /
   caravan / mirrors).

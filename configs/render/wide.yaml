@@ -35,17 +35,18 @@ cycles:
 
   use_denoising:       true
   denoiser:            OPENIMAGEDENOISE
-  denoising_use_gpu:   true
+  denoising_use_gpu:   false
 
   pixel_filter_type:   BLACKMAN_HARRIS
   filter_width:        1.5
 
-apple_silicon:
-  enabled:                  true
-  compute_device_type:      METAL
-  use_metalrt:              true
-  cycles_device:            GPU
-  select_all_metal_devices: true
+# Select local hardware on every render/preview; the same profile works on both OSes.
+# AUTO: macOS METAL; Linux OPTIX -> CUDA -> HIP -> ONEAPI; then CPU.
+device:
+  backend: AUTO
+  fallback_to_cpu: true
+  use_metalrt: true
+
 
 persistent_data: true
 

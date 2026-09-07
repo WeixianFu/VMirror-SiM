@@ -20,9 +20,9 @@ its own Blender subprocess and Blender exits (headless) or stays open
 
 | Component        | Version / path                                      |
 | ---------------- | ---------------------------------------------------- |
-| Blender          | auto-detected at `/Applications/Blender.app/Contents/MacOS/Blender`, or the first `blender` on `PATH` |
+| Blender          | Same 5.x release on both computers; `blender_exe` → `VMIRROR_BLENDER_EXE` → macOS app / PATH |
 | Python (notebook)| 3.9+ with `pyyaml` (the builder itself imports nothing else) |
-| GPU (optional)   | Apple-Silicon Metal is auto-enabled from `configs/render/default.yaml` |
+| GPU (optional)   | AUTO: macOS Metal; Linux OptiX → CUDA → HIP → oneAPI; CPU fallback |
 
 Install notebook-side deps:
 
@@ -432,11 +432,99 @@ by name.
 - **Something failed inside Blender.** Status is `"error"` and the report
   carries `"error"` + `"traceback"` strings. Re-run with `open_gui=True` and
   open Blender's System Console to follow along live.
-- **Metal GPU didn't engage.** Check
-  `report["render"]["apple_silicon_error"]`. Most common cause is running
-  on an Intel Mac — edit `apple_silicon.enabled: false` in
-  `configs/render/default.yaml`.
+- **GPU didn't engage.** Check the Renderer report's `render.backend`,
+  `render.devices`, `render.attempts` and `render.fallback_reason`. CPU fallback
+  is explicit; see §9 for driver and backend configuration.
 - **Intermediate `.blend` files take ~100 MB each.** The scene blend packs
   all appended assets. Wipe `tmp/` when you're done iterating.
 - **`tmp/` or `output/` accidentally committed?** Both are listed in
   `.gitignore`; if git is tracking them, `git rm -r --cached tmp output`.
+
+## 9. macOS and Linux development
+
+Install the **same Blender 5.x release** on the Mac and Linux desktop, and
+create the Conda environment from `environment.yml` on each. Blender is a
+separate installation; do not install `bpy` in the notebook environment.
+RTX 50-series support began in Blender 4.4, but this project's shared baseline
+is 5.x. Install an NVIDIA driver supported by your chosen Blender release:
+[Cycles GPU requirements](https://docs.blender.org/manual/en/latest/render/cycles/gpu_rendering.html).
+
+```bash
+conda env create -f environment.yml
+conda activate vmirror-sim
+# Optional for a Linux archive installed outside PATH (use your actual path):
+# export VMIRROR_BLENDER_EXE=/opt/blender/blender
+jupyter lab
+```
+
+Run this from the project root and open `notebooks/vmirror_explorer.ipynb`.
+The preview, adjustment, save and render workflow is identical. Linux GUI
+preview requires a desktop session (`DISPLAY` or `WAYLAND_DISPLAY`); SSH-only
+sessions can use `SimulationPipeline(...).run(open_gui=False)`.
+
+Copy the gitignored `assets/blender-vehicle/` and `assets/blender-caravan/`
+folders separately, preserving filenames/case. Both computers need the same
+assets and configs. Intermediate/output files stay out of Git. Open transferred
+blends through `Renderer.preview()` / `render()` so the local device is selected
+again; simply double-clicking a blend bypasses this setup. Use matching Blender
+versions, samples, resolution and denoiser for comparable images. Different
+GPU backends need not produce pixel-identical results or equal preview speed.
+
+Both shipped profiles now contain:
+
+```yaml
+device:
+  backend: AUTO
+  fallback_to_cpu: true
+  use_metalrt: true
+```
+
+AUTO tries Metal on macOS and OptiX → CUDA → HIP → oneAPI on Linux. Only
+actually discovered devices of the selected backend are enabled, without CPU
+hybrid rendering. CPU is explicitly selected if discovery fails, clearing
+GPU denoising settings saved in the input blend. This fallback covers device
+initialization; GPU kernel/render failures after selection are reported as
+errors, not silently retried. Blender user preferences are not saved or changed
+outside the subprocess.
+
+To force a backend, copy a complete render profile to `output/` and change
+`device.backend` to `CPU`, `METAL`, `OPTIX`, `CUDA`, `HIP` or `ONEAPI`; pass its
+path as `render_profile`. Set `fallback_to_cpu: false` if a GPU initialization
+failure should stop the run. A misspelled backend is always an error.
+`device` takes precedence over the legacy `apple_silicon` block, which is still
+accepted for existing custom profiles. Legacy `enabled: false` now explicitly
+selects CPU. CPU OpenImageDenoise is the shared default for final and preview
+rendering; GPU denoising can be opted into with `cycles.denoising_use_gpu: true`.
+
+Renderer reports (including previews) expose `render.backend`, `devices`,
+`requested_backend`, `platform`, `blender_version`, `attempts`, `fallback_reason`
+and `warnings`. Old `metal_devices` / `apple_silicon_error` fields remain as
+compatibility aliases. `SimulationPipeline` nests the Renderer report under
+its own `render` key. The notebook prints these settings after each operation.
+
+Hardware-independent regression checks:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+For Linux acceptance, build a scene with `CameraRig(side="both")`, render both
+`<vehicle>_DriverCam_L` and `_R`, confirm `backend == "OPTIX"` and the RTX 5070 Ti
+in `devices`, then open the triple-pane preview. Also verify explicit CPU mode.
+Mock device tests exercise selection logic; they do not substitute for this
+Linux driver/render/GUI check.
+
+A reusable small-scene check writes timestamped reports and both PNGs without
+changing baseline configs (896 × 504, 32 samples):
+
+```bash
+python scripts/check_platform.py
+# Linux RTX 5070 Ti: require OptiX and inspect the triple-pane GUI
+python scripts/check_platform.py --backend OPTIX --require-gpu --preview
+# CPU check on either computer
+python scripts/check_platform.py --backend CPU
+```
+
+`--preview` confirms startup; inspect the actual three panes and close the
+window manually. Reports/images are under `output/platform-check/`, and blends
+under `tmp/platform_check_*`. Missing model assets or render errors exit nonzero.

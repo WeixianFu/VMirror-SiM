@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -52,8 +53,14 @@ DEFAULT_BLENDER_PATHS = [
 
 
 def find_blender(override: str | None = None) -> str:
-    if override:
-        return override
+    configured = override or os.environ.get("VMIRROR_BLENDER_EXE")
+    if configured:
+        expanded = os.path.expanduser(os.fspath(configured))
+        found = shutil.which(expanded)
+        if found:
+            return str(Path(found).resolve())
+        raise RuntimeError("Configured Blender executable is not executable or was not found: "
+                           + expanded)
     for p in DEFAULT_BLENDER_PATHS:
         if os.path.isabs(p):
             if os.path.isfile(p) and os.access(p, os.X_OK):
@@ -64,7 +71,7 @@ def find_blender(override: str | None = None) -> str:
                 return found
     raise RuntimeError(
         "Blender executable not found. Install Blender or pass "
-        "`blender_exe=...` to the constructor."
+        "`blender_exe=...` to the constructor, or set VMIRROR_BLENDER_EXE."
     )
 
 
@@ -101,6 +108,12 @@ def run_blender_script(
     In GUI mode it polls for ``report_path`` to appear (the script writes it
     as its final act), then returns while the Blender window keeps living.
     """
+    if open_gui and sys.platform.startswith("linux") and not (
+        os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+    ):
+        raise RuntimeError("Blender preview requires a Linux desktop session "
+                           "(DISPLAY or WAYLAND_DISPLAY). Use open_gui=False "
+                           "for background rendering.")
     tmpdir = _project_mkdtemp("vmirror_sim_")
     script_path = tmpdir / "script.py"
     script_path.write_text(script_body)
@@ -114,12 +127,17 @@ def run_blender_script(
         # Capture stdout/stderr to a log file inside the tmpdir so errors
         # from deferred timers (e.g. area_split failures) can be inspected.
         log_path = tmpdir / "blender_stdout.log"
-        log_f = open(log_path, "w")
-        proc = subprocess.Popen(
-            args, stdout=log_f, stderr=subprocess.STDOUT,
-        )
+        with open(log_path, "w") as log_f:
+            proc = subprocess.Popen(
+                args, stdout=log_f, stderr=subprocess.STDOUT,
+            )
         deadline = time.time() + timeout
         while not report_path.exists() and time.time() < deadline:
+            if proc.poll() is not None:
+                raise RuntimeError(
+                    f"Blender GUI exited with code {proc.returncode}. "
+                    f"See {log_path}\n{log_path.read_text(errors='replace')[-2000:]}"
+                )
             time.sleep(0.3)
         if not report_path.exists():
             raise RuntimeError(
